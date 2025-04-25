@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>이미지맵 만들기</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    .image-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-top: 20px;
+      border: 1px solid #ddd;
+    }
+
+    .image-wrapper img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .highlight {
+      position: absolute;
+      border: 2px dashed red;
+      background-color: rgba(255, 0, 0, 0.1);
+      pointer-events: none;
+    }
+
+    .point {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background-color: red;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+
+    .area-wrapper {
+      text-align: center;
+    }
+
+    .input-wrapper {
+      padding: 10px 50px;
+      background: #d7d7d7;
+    }
+
+    .input-wrapper dl dt {
+      font-weight: bold;
+    }
+
+    .input-wrapper dl dd {
+      margin: 0;
+      padding-top: 10px;
+    }
+
+    .input-wrapper dl dd .input-url {
+      min-width: 500px;
+      padding: 8px;
+    }
+
+    .btn-wrapper {
+      text-align: center;
+
+      button {
+        display: inlineblock;
+        width: 250px;
+        height: 50px;
+        gap: 10px;
+        margin: 0 auto;
+        text-align: center;
+        background: #1baed4;
+        color: #fff;
+        font-weight: bold;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+    }
+
+    .code-wrapper textarea {
+      display: block;
+      width: 100%;
+      height: 100px;
+      margin: 10px 0;
+      resize: none;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>이미지맵 만들기</h1>
+  <div class="input-wrapper">
+    <dl>
+      <dt>이미지 업로드</dt>
+      <dd><input type="file" accept="image/*" id="imgInput" /></dd>
+    </dl>
+    <dl>
+      <dt>링크주소</dt>
+      <dd><input type="text" id="imgUrl" class="input-url" /></dd>
+    </dl>
+  </div>
+  <div class="area-wrapper">
+    <div class="image-wrapper" id="imageWrapper">
+      <img id="uploadedImg" />
+    </div>
+  </div>
+  <div class="btn-wrapper">
+    <button type="button" id="codeBtn">이미지 맵 만들기</button>
+    <button type="button" id="resetBtn">이미지 맵 초기화</button>
+  </div>
+
+  <h2>📌이미지 맵</h2>
+  <div>
+    <div class="code-wrapper">
+      <strong>PC</strong>
+      <textarea id="pcCode" readonly></textarea>
+    </div>
+    <div class="code-wrapper">
+      <strong>모바일</strong>
+      <textarea id="mobileCode" readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    const imgInput = document.getElementById('imgInput');
+    const img = document.getElementById('uploadedImg');
+    const wrapper = document.getElementById('imageWrapper');
+    const pcCode = document.getElementById('pcCode');
+    const mobileCode = document.getElementById('mobileCode');
+
+    let start = null;
+    let areas = [];
+    let pcCodeArray = [];
+    let mobileCodeArray = [];
+
+    imgInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        img.src = url;
+        start = null;
+        areas = [];
+        pcCodeArray = [];
+        mobileCodeArray = [];
+        wrapper.querySelectorAll('.highlight, .point').forEach(el => el.remove());
+        pcCode.value = '';
+        mobileCode.value = '';
+      }
+    });
+
+    wrapper.addEventListener('click', (e) => {
+      if (!img.src) return;
+
+      const rect = img.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+
+      const point = document.createElement('div');
+      point.className = 'point';
+      point.style.left = `${px}px`;
+      point.style.top = `${py}px`;
+      wrapper.appendChild(point);
+
+      if (!start) {
+        start = { x, y, px, py };
+      } else {
+        const left = Math.min(start.x, x) * 100;
+        const top = Math.min(start.y, y) * 100;
+        const width = Math.abs(x - start.x) * 100;
+        const height = Math.abs(y - start.y) * 100;
+
+        const x1 = Math.min(start.px, px);
+        const y1 = Math.min(start.py, py);
+        const w = Math.abs(px - start.px);
+        const h = Math.abs(py - start.py);
+
+        const box = document.createElement('div');
+        box.className = 'highlight';
+        box.style.left = `${left}%`;
+        box.style.top = `${top}%`;
+        box.style.width = `${width}%`;
+        box.style.height = `${height}%`;
+        wrapper.appendChild(box);
+
+        areas.push({
+          left, top, width, height,
+          x1, y1, w, h
+        });
+
+        start = null;
+      }
+    });
+
+    document.getElementById('codeBtn').addEventListener('click', () => {
+      pcCodeArray = [];
+      mobileCodeArray = [];
+      const imgUrl = document.getElementById('imgUrl').value;
+      if (areas.length === 0) {
+        alert('이미지 맵을 그리세요.');
+        return;
+      }
+      if (!imgUrl) {
+        alert('링크주소를 입력해주세요.');
+        return;
+      }
+
+
+      areas.forEach(area => {
+        const pcHtml = `<area shape="rect" target="_blank" href="${imgUrl}" coords="${Math.round(area.x1)},${Math.round(area.y1)},${Math.round(area.x1 + area.w)},${Math.round(area.y1 + area.h)}" alt="링크 바로가기">`.trim();
+        const mobileHtml = `<a href="${imgUrl}" target="_blank" style="left:${area.left.toFixed(2)}%;top:${area.top.toFixed(2)}%;width:${area.width.toFixed(2)}%;height:${area.height.toFixed(2)}%;position:absolute;" alt="링크 바로가기"></a>`.trim();
+
+        pcCodeArray.push(pcHtml);
+        mobileCodeArray.push(mobileHtml);
+      });
+
+      pcCode.value = pcCodeArray.join('\n');
+      mobileCode.value = mobileCodeArray.join('\n');
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      areas = [];
+      pcCodeArray = [];
+      mobileCodeArray = [];
+      wrapper.querySelectorAll('.highlight, .point').forEach(el => el.remove());
+      pcCode.value = '';
+      mobileCode.value = '';
+    })
+  </script>
+</body>
+
+</html>
