@@ -213,7 +213,7 @@
 
       areas.forEach(area => {
         const pcHtml = `<area shape="rect" target="_blank" href="${imgUrl}" coords="${Math.round(area.x1)},${Math.round(area.y1)},${Math.round(area.x1 + area.w)},${Math.round(area.y1 + area.h)}" alt="링크 바로가기">`.trim();
-        const mobileHtml = `<a href="${imgUrl}" target="_blank" class="event_btn event_btn1" style="left:${area.left.toFixed(2)}%;top:${area.top.toFixed(2)}%;width:${area.width.toFixed(2)}%;height:${area.height.toFixed(2)}%;position:absolute;" alt="링크 바로가기"></a>`.trim();
+        const mobileHtml = `<a href="${imgUrl}" target="_blank" class="event_btn event_btn1" style="left:${area.left.toFixed(2)}%;top:${area.top.toFixed(2)}%;width:${area.width.toFixed(2)}%;height:${area.height.toFixed(2)}%" alt="링크 바로가기"></a>`.trim();
 
         pcCodeArray.push(pcHtml);
         mobileCodeArray.push(mobileHtml);
