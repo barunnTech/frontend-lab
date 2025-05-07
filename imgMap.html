@@ -6,8 +6,16 @@
   <title>이미지맵 만들기</title>
   <style>
     body {
+      max-width: 960px;
+      margin: 0 auto;
       font-family: sans-serif;
       padding: 20px;
+    }
+
+    input,
+    button {
+      font-family: inherit;
+      line-height: 1.4;
     }
 
     .image-wrapper {
@@ -22,21 +30,41 @@
       display: block;
     }
 
+    .box-map {
+      position: absolute;
+    }
+
     .highlight {
       position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
       border: 2px dashed red;
       background-color: rgba(255, 0, 0, 0.1);
       pointer-events: none;
+      box-sizing: border-box;
     }
 
     .point {
       position: absolute;
-      width: 6px;
-      height: 6px;
+      width: 10px;
+      height: 10px;
       background-color: red;
       border-radius: 50%;
       transform: translate(-50%, -50%);
       z-index: 10;
+    }
+
+    .point1 {
+      left: 0;
+      top: 0;
+    }
+
+    .point2 {
+      right: 0;
+      bottom: 0;
+      cursor: nwse-resize;
     }
 
     .area-wrapper {
@@ -45,7 +73,7 @@
 
     .input-wrapper {
       padding: 10px 50px;
-      background: #d7d7d7;
+      background: #f1f1f1;
     }
 
     .input-wrapper dl dt {
@@ -63,6 +91,7 @@
     }
 
     .btn-wrapper {
+      margin-top: 50px;
       text-align: center;
 
       button {
@@ -81,12 +110,54 @@
       }
     }
 
+    .lst-wrapper {
+      padding: 10px 50px;
+      background: #f1f1f1;
+      min-height: 100px;
+    }
+
     .code-wrapper textarea {
       display: block;
       width: 100%;
       height: 100px;
       margin: 10px 0;
       resize: none;
+    }
+
+    .link-input-group {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .link-input-group:first-child {
+      margin-top: 0
+    }
+
+    .link-input-group label {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .link-input {
+      width: 80%;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      width: 24px;
+      height: 24px;
+      background: red;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 99;
     }
   </style>
 </head>
@@ -98,22 +169,19 @@
       <dt>이미지 업로드</dt>
       <dd><input type="file" accept="image/*" id="imgInput" /></dd>
     </dl>
-    <dl>
-      <dt>링크주소</dt>
-      <dd><input type="text" id="imgUrl" class="input-url" /></dd>
-    </dl>
   </div>
   <div class="area-wrapper">
     <div class="image-wrapper" id="imageWrapper">
       <img id="uploadedImg" />
     </div>
   </div>
+  <h2>📌 링크 입력 (박스별)</h2>
+  <div id="linkListWrapper" class="lst-wrapper"></div>
   <div class="btn-wrapper">
     <button type="button" id="codeBtn">이미지 맵 만들기</button>
     <button type="button" id="resetBtn">이미지 맵 초기화</button>
   </div>
-
-  <h2>📌이미지 맵</h2>
+  <h2>📌이미지 맵 결과 코드</h2>
   <div>
     <div class="code-wrapper">
       <strong>PC</strong>
@@ -131,29 +199,40 @@
     const wrapper = document.getElementById('imageWrapper');
     const pcCode = document.getElementById('pcCode');
     const mobileCode = document.getElementById('mobileCode');
+    const linkListWrapper = document.getElementById('linkListWrapper');
 
     let start = null;
     let areas = [];
     let pcCodeArray = [];
     let mobileCodeArray = [];
+    let boxIndex = 0;
+    let currentBox = null;
+    let isDragging = false;
+    let dragTarget = null;
+    let offsetX = 0;
+    let offsetY = 0;
+    let wasDragging = false;
+    let resizeTarget = null;
+    let isResizing = false;
+    let wasResizing = false;
 
     imgInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
+        resetAll();
         const url = URL.createObjectURL(file);
         img.src = url;
-        start = null;
-        areas = [];
-        pcCodeArray = [];
-        mobileCodeArray = [];
-        wrapper.querySelectorAll('.highlight, .point').forEach(el => el.remove());
-        pcCode.value = '';
-        mobileCode.value = '';
       }
     });
 
     wrapper.addEventListener('click', (e) => {
       if (!img.src) return;
+      if (wasDragging || wasResizing || isDragging || isResizing) {
+        wasDragging = false;
+        wasResizing = false;
+        return;
+      }
+
 
       const rect = img.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
@@ -161,14 +240,19 @@
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
 
-      const point = document.createElement('div');
+      const point = document.createElement('span');
       point.className = 'point';
       point.style.left = `${px}px`;
       point.style.top = `${py}px`;
-      wrapper.appendChild(point);
 
       if (!start) {
         start = { x, y, px, py };
+
+        currentBox = document.createElement('div');
+        currentBox.className = 'box-map';
+        currentBox.style.position = 'absolute';
+        wrapper.appendChild(currentBox);
+
       } else {
         const left = Math.min(start.x, x) * 100;
         const top = Math.min(start.y, y) * 100;
@@ -180,40 +264,185 @@
         const w = Math.abs(px - start.px);
         const h = Math.abs(py - start.py);
 
+        currentBox.style.left = `${left}%`;
+        currentBox.style.top = `${top}%`;
+        currentBox.style.width = `${width}%`;
+        currentBox.style.height = `${height}%`;
+
+        // 포인트 1 (좌상단)
+        const point1 = document.createElement('span');
+        point1.className = 'point';
+        point1.style.left = '0px';
+        point1.style.top = '0px';
+
+        // 포인트 2 (우하단 상대 좌표)
+        const point2 = document.createElement('span');
+        point2.className = 'point point2'; // ← 리사이즈용 포인트
+        point2.style.left = `${px - start.px}px`;
+        point2.style.top = `${py - start.py}px`;
+
+        // highlight 박스
         const box = document.createElement('div');
         box.className = 'highlight';
-        box.style.left = `${left}%`;
-        box.style.top = `${top}%`;
-        box.style.width = `${width}%`;
-        box.style.height = `${height}%`;
-        wrapper.appendChild(box);
+        box.textContent = boxIndex + 1;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = '×';
+        deleteBtn.setAttribute('data-index', boxIndex);
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = deleteBtn.getAttribute('data-index');
+          deleteBtn.parentElement?.remove();
+          const input = document.querySelector(`.link-input[data-index="${idx}"]`);
+          if (input?.parentElement) input.parentElement.remove();
+          areas[idx] = null;
+        });
+
+        currentBox.appendChild(deleteBtn);
+        currentBox.appendChild(point1);
+        currentBox.appendChild(point2);
+        currentBox.appendChild(box);
+        wrapper.appendChild(currentBox);
+
+        // 링크 입력 필드 생성
+        const linkGroup = document.createElement('div');
+        linkGroup.className = 'link-input-group';
+        const label = document.createElement('label');
+        label.textContent = `${boxIndex + 1}번 링크`;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'link-input';
+        input.setAttribute('data-index', boxIndex);
+        input.placeholder = '해당 영역의 링크를 입력하세요';
+        linkGroup.appendChild(label);
+        linkGroup.appendChild(input);
+        linkListWrapper.appendChild(linkGroup);
 
         areas.push({
           left, top, width, height,
-          x1, y1, w, h
+          x1, y1, w, h,
+          inputRef: input
         });
 
         start = null;
+        currentBox = null;
+        boxIndex++;
       }
+    });
+    wrapper.addEventListener('mousedown', (e) => {
+      // 박스 이동 시작
+      if (e.target.classList.contains('box-map')) {
+        isDragging = true;
+        wasDragging = false;
+        dragTarget = e.target;
+        const rect = dragTarget.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        e.preventDefault();
+      }
+      // 박스 리사이즈 시작
+      if (e.target.classList.contains('point2')) {
+        isResizing = true;
+        resizeTarget = e.target.closest('.box-map');
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging && dragTarget) {
+        wasDragging = true;
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const x = e.clientX - wrapperRect.left - offsetX;
+        const y = e.clientY - wrapperRect.top - offsetY;
+        const left = (x / wrapper.offsetWidth) * 100;
+        const top = (y / wrapper.offsetHeight) * 100;
+        dragTarget.style.left = `${left}%`;
+        dragTarget.style.top = `${top}%`;
+
+        const index = dragTarget.querySelector('.delete-btn')?.getAttribute('data-index');
+        if (index !== null && areas[index]) {
+          areas[index].left = left;
+          areas[index].top = top;
+        }
+      }
+      if (isResizing && resizeTarget) {
+        wasResizing = true;
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const left = parseFloat(resizeTarget.style.left) / 100 * wrapper.offsetWidth;
+        const top = parseFloat(resizeTarget.style.top) / 100 * wrapper.offsetHeight;
+
+        const newWidth = e.clientX - wrapperRect.left - left;
+        const newHeight = e.clientY - wrapperRect.top - top;
+
+        const widthPercent = (newWidth / wrapper.offsetWidth) * 100;
+        const heightPercent = (newHeight / wrapper.offsetHeight) * 100;
+
+        resizeTarget.style.width = `${widthPercent}%`;
+        resizeTarget.style.height = `${heightPercent}%`;
+
+        const point2 = resizeTarget.querySelector('.point2');
+        if (point2) {
+          point2.style.left = `${newWidth}px`;
+          point2.style.top = `${newHeight}px`;
+        }
+
+
+        const index = resizeTarget.querySelector('.delete-btn')?.getAttribute('data-index');
+        if (index !== null && areas[index]) {
+          areas[index].width = widthPercent;
+          areas[index].height = heightPercent;
+        }
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (wasDragging && dragTarget) {
+        const index = dragTarget.querySelector('.delete-btn')?.getAttribute('data-index');
+        if (index !== null && areas[index]) {
+          const wrapperRect = wrapper.getBoundingClientRect();
+          const leftPercent = parseFloat(dragTarget.style.left);
+          const topPercent = parseFloat(dragTarget.style.top);
+          const widthPercent = parseFloat(dragTarget.style.width);
+          const heightPercent = parseFloat(dragTarget.style.height);
+
+          const x1 = (leftPercent / 100) * wrapper.offsetWidth;
+          const y1 = (topPercent / 100) * wrapper.offsetHeight;
+          const w = (widthPercent / 100) * wrapper.offsetWidth;
+          const h = (heightPercent / 100) * wrapper.offsetHeight;
+
+          areas[index].x1 = x1;
+          areas[index].y1 = y1;
+          areas[index].w = w;
+          areas[index].h = h;
+        }
+      }
+
+      isDragging = false;
+      dragTarget = null;
+      isResizing = false;
+      resizeTarget = null;
+
+      setTimeout(() => {
+        wasDragging = false;
+        wasResizing = false;
+      }, 0);
     });
 
     document.getElementById('codeBtn').addEventListener('click', () => {
       pcCodeArray = [];
       mobileCodeArray = [];
-      const imgUrl = document.getElementById('imgUrl').value;
-      if (areas.length === 0) {
-        alert('이미지 맵을 그리세요.');
-        return;
-      }
-      if (!imgUrl) {
-        alert('링크주소를 입력해주세요.');
-        return;
-      }
 
+      areas.forEach((area, index) => {
+        if (!area) return;
+        const link = area.inputRef.value.trim();
+        if (!link) {
+          alert(`${index + 1}번 영역의 링크를 입력해주세요`);
+          return;
+        }
 
-      areas.forEach(area => {
-        const pcHtml = `<area shape="rect" target="_blank" href="${imgUrl}" coords="${Math.round(area.x1)},${Math.round(area.y1)},${Math.round(area.x1 + area.w)},${Math.round(area.y1 + area.h)}" alt="링크 바로가기">`.trim();
-        const mobileHtml = `<a href="${imgUrl}" target="_blank" class="event_btn event_btn1" style="left:${area.left.toFixed(2)}%;top:${area.top.toFixed(2)}%;width:${area.width.toFixed(2)}%;height:${area.height.toFixed(2)}%" alt="링크 바로가기"></a>`.trim();
+        const pcHtml = `${index + 1} : <area shape="rect" target="_blank" href="${link}" coords="${Math.round(area.x1)},${Math.round(area.y1)},${Math.round(area.x1 + area.w)},${Math.round(area.y1 + area.h)}" alt="링크 바로가기">`;
+        const mobileHtml = `${index + 1} : <a href="${link}" target="_blank" class="event_btn event_btn1" style="left:${area.left.toFixed(2)}%;top:${area.top.toFixed(2)}%;width:${area.width.toFixed(2)}%;height:${area.height.toFixed(2)}%" alt="링크 바로가기"></a>`;
 
         pcCodeArray.push(pcHtml);
         mobileCodeArray.push(mobileHtml);
@@ -224,13 +453,21 @@
     });
 
     document.getElementById('resetBtn').addEventListener('click', () => {
+      resetAll();
+    })
+
+    function resetAll() {
+      start = null;
       areas = [];
       pcCodeArray = [];
       mobileCodeArray = [];
-      wrapper.querySelectorAll('.highlight, .point').forEach(el => el.remove());
+      boxIndex = 0;
+      wrapper.querySelectorAll('.highlight, .point, .box-map').forEach(el => el.remove());
+      linkListWrapper.innerHTML = '';
       pcCode.value = '';
       mobileCode.value = '';
-    })
+    }
+
   </script>
 </body>
 
