@@ -41,9 +41,12 @@
       top: 0;
       left: 0;
       border: 2px dashed red;
-      background-color: rgba(255, 0, 0, 0.1);
+      background-color: rgba(255, 0, 0, 0.24);
       pointer-events: none;
       box-sizing: border-box;
+      color: #fff;
+      font-weight: 700;
+      font-size: 30px
     }
 
     .point {
@@ -215,6 +218,7 @@
     let resizeTarget = null;
     let isResizing = false;
     let wasResizing = false;
+    let tempPoint1 = null;
 
     imgInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -232,14 +236,11 @@
         wasResizing = false;
         return;
       }
-
-
       const rect = img.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
       const y = (e.clientY - rect.top) / rect.height;
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
-
       const point = document.createElement('span');
       point.className = 'point';
       point.style.left = `${px}px`;
@@ -247,6 +248,13 @@
 
       if (!start) {
         start = { x, y, px, py };
+
+        // 포인트 1 만들고 표시
+        tempPoint1 = document.createElement('span');
+        tempPoint1.className = 'point point1';
+        tempPoint1.style.left = `${px}px`;
+        tempPoint1.style.top = `${py}px`;
+        wrapper.appendChild(tempPoint1);
 
         currentBox = document.createElement('div');
         currentBox.className = 'box-map';
@@ -298,7 +306,10 @@
           if (input?.parentElement) input.parentElement.remove();
           areas[idx] = null;
         });
-
+        if (tempPoint1) {
+          tempPoint1.remove();
+          tempPoint1 = null;
+        }
         currentBox.appendChild(deleteBtn);
         currentBox.appendChild(point1);
         currentBox.appendChild(point2);
@@ -386,8 +397,6 @@
           point2.style.left = `${newWidth}px`;
           point2.style.top = `${newHeight}px`;
         }
-
-
         const index = resizeTarget.querySelector('.delete-btn')?.getAttribute('data-index');
         if (index !== null && areas[index]) {
           areas[index].width = widthPercent;
@@ -395,7 +404,6 @@
         }
       }
     });
-
     document.addEventListener('mouseup', () => {
       if (wasDragging && dragTarget) {
         const index = dragTarget.querySelector('.delete-btn')?.getAttribute('data-index');
@@ -417,7 +425,6 @@
           areas[index].h = h;
         }
       }
-
       isDragging = false;
       dragTarget = null;
       isResizing = false;
@@ -467,7 +474,6 @@
       pcCode.value = '';
       mobileCode.value = '';
     }
-
   </script>
 </body>
 
