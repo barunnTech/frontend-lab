@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 컬러 팔레트 생성기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #111827;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f9fafb;
+        }
+
+        .upload-area:hover {
+            border-color: #6b7280;
+            background: #f3f4f6;
+        }
+
+        .upload-area.dragover {
+            border-color: #374151;
+            background: #f3f4f6;
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #4b5563;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #111827;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            background: #1f2937;
+            transform: translateY(-1px);
+        }
+
+        .image-preview {
+            text-align: center;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .palette-container {
+            display: none;
+        }
+
+        .palette-section {
+            margin-bottom: 40px;
+        }
+
+        .palette-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            text-align: center;
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .palette-title {
+            text-align: center;
+            color: #111827;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .color-palette {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .color-item {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .color-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-value {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75em;
+            color: #4b5563;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+            font-weight: 500;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+        }
+
+        .loading {
+            text-align: center;
+            color: #374151;
+            font-size: 1.2em;
+            font-weight: 500;
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #374151;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #111827;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .upload-area {
+                padding: 30px 20px;
+            }
+            
+            .color-item {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .color-value {
+                font-size: 0.7em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 컬러 팔레트 생성기</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">이미지를 드래그하거나 클릭하여 업로드하세요</div>
+            <button class="upload-btn" id="uploadBtn">
+                이미지 선택
+            </button>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            컬러 팔레트 생성 중...
+        </div>
+
+        <div class="image-preview" id="imagePreview">
+            <img id="previewImg" class="preview-img" alt="미리보기">
+        </div>
+
+        <div class="palette-container" id="paletteContainer">
+            <h2 class="palette-title">추출된 컬러 팔레트</h2>
+            
+            <div class="palette-section">
+                <h3 class="section-title">🎨 대표 컬러</h3>
+                <div class="color-palette" id="dominantPalette"></div>
+            </div>
+            
+            <div class="palette-section">
+                <h3 class="section-title">🌈 보색 팔레트</h3>
+                <div class="color-palette" id="complementaryPalette"></div>
+            </div>
+            
+            <div class="palette-section">
+                <h3 class="section-title">🌅 배경용 팔레트</h3>
+                <div class="color-palette" id="backgroundPalette"></div>
+            </div>
+            
+            <div class="palette-section">
+                <h3 class="section-title">🌿 아날로그 대비</h3>
+                <div class="color-palette" id="analogousPalette"></div>
+            </div>
+            
+            <div class="palette-section">
+                <h3 class="section-title">🌡️ 온도 대비</h3>
+                <div class="color-palette" id="temperaturePalette"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">컬러 코드가 복사되었습니다!</div>
+
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const loading = document.getElementById('loading');
+        const paletteContainer = document.getElementById('paletteContainer');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const toast = document.getElementById('toast');
+        let currentColors = [];
+        let currentPaletteType = 'dominant';
+
+        // 드래그 앤 드롭 이벤트
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleImageUpload(files[0]);
+            }
+        });
+
+        // 클릭 업로드
+        uploadArea.addEventListener('click', (e) => {
+            // 버튼 클릭은 제외
+            if (e.target.id !== 'uploadBtn' && !e.target.closest('.upload-btn')) {
+                fileInput.click();
+            }
+        });
+        
+        // 버튼 클릭 이벤트
+        document.getElementById('uploadBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageUpload(file);
+            }
+            // 파일 입력 초기화 (같은 파일 재선택 가능)
+            e.target.value = '';
+        });
+
+        function handleImageUpload(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                imagePreview.style.display = 'block';
+                loading.style.display = 'block';
+                paletteContainer.style.display = 'none';
+                
+                // 이미지 로드 완료 후 컬러 추출
+                previewImg.onload = () => {
+                    extractColors(previewImg);
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function extractColors(img) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // 컬러 추출 알고리즘 (K-means 클러스터링 간소화 버전)
+            const colors = [];
+            const step = 4; // 픽셀 샘플링 간격
+            
+            for (let i = 0; i < data.length; i += step * 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const a = data[i + 3];
+                
+                // 투명도가 낮은 픽셀 제외
+                if (a < 128) continue;
+                
+                colors.push([r, g, b]);
+            }
+
+            // 대표 컬러 추출
+            const dominantColors = getDominantColors(colors, 5);
+            currentColors = dominantColors;
+            
+            setTimeout(() => {
+                displayBothPalettes(currentColors);
+                loading.style.display = 'none';
+                paletteContainer.style.display = 'block';
+            }, 1000);
+        }
+
+        function getDominantColors(colors, k) {
+            if (colors.length === 0) return [];
+            
+            // 간단한 K-means 클러스터링
+            let centroids = [];
+            
+            // 초기 중심점 설정
+            for (let i = 0; i < k; i++) {
+                const randomIndex = Math.floor(Math.random() * colors.length);
+                centroids.push([...colors[randomIndex]]);
+            }
+            
+            // 반복 클러스터링
+            for (let iter = 0; iter < 10; iter++) {
+                const clusters = Array.from({ length: k }, () => []);
+                
+                // 각 색상을 가장 가까운 중심점에 할당
+                colors.forEach(color => {
+                    let minDistance = Infinity;
+                    let closestCentroid = 0;
+                    
+                    centroids.forEach((centroid, index) => {
+                        const distance = getColorDistance(color, centroid);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestCentroid = index;
+                        }
+                    });
+                    
+                    clusters[closestCentroid].push(color);
+                });
+                
+                // 중심점 업데이트
+                centroids = clusters.map(cluster => {
+                    if (cluster.length === 0) return centroids[0];
+                    
+                    const r = cluster.reduce((sum, color) => sum + color[0], 0) / cluster.length;
+                    const g = cluster.reduce((sum, color) => sum + color[1], 0) / cluster.length;
+                    const b = cluster.reduce((sum, color) => sum + color[2], 0) / cluster.length;
+                    
+                    return [Math.round(r), Math.round(g), Math.round(b)];
+                });
+            }
+            
+            // 비슷한 색상 제거 및 정렬
+            const uniqueColors = [];
+            centroids.forEach(centroid => {
+                const isDuplicate = uniqueColors.some(color => 
+                    getColorDistance(color, centroid) < 30
+                );
+                if (!isDuplicate) {
+                    uniqueColors.push(centroid);
+                }
+            });
+            
+            return uniqueColors.slice(0, k);
+        }
+
+        function getColorDistance(color1, color2) {
+            const dr = color1[0] - color2[0];
+            const dg = color1[1] - color2[1];
+            const db = color1[2] - color2[2];
+            return Math.sqrt(dr * dr + dg * dg + db * db);
+        }
+
+        function displayPalette(colors, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            colors.forEach(color => {
+                const colorItem = document.createElement('div');
+                colorItem.className = 'color-item';
+                colorItem.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                
+                const colorValue = document.createElement('div');
+                colorValue.className = 'color-value';
+                const hex = rgbToHex(color[0], color[1], color[2]);
+                colorValue.textContent = hex;
+                
+                colorItem.appendChild(colorValue);
+                colorItem.addEventListener('click', () => copyToClipboard(hex));
+                
+                container.appendChild(colorItem);
+            });
+        }
+
+        function displayBothPalettes(dominantColors) {
+            // 대표 컬러 표시
+            displayPalette(dominantColors, 'dominantPalette');
+            
+            // 보색 팔레트 표시
+            const complementaryColors = generateComplementaryPalette(dominantColors);
+            displayPalette(complementaryColors, 'complementaryPalette');
+            
+            // 배경용 팔레트 표시
+            const backgroundColors = generateBackgroundPalette(dominantColors);
+            displayPalette(backgroundColors, 'backgroundPalette');
+            
+            // 아날로그 대비 팔레트 표시
+            const analogousColors = generateAnalogousPalette(dominantColors);
+            displayPalette(analogousColors, 'analogousPalette');
+            
+            // 온도 대비 팔레트 표시
+            const temperatureColors = generateTemperaturePalette(dominantColors);
+            displayPalette(temperatureColors, 'temperaturePalette');
+        }
+
+        function generateBackgroundPalette(colors) {
+            const backgroundColors = [];
+            
+            colors.forEach(color => {
+                const [h, s, l] = rgbToHsl(color[0], color[1], color[2]);
+                
+                // 여러 밝기 레벨로 배경용 색상 생성
+                const backgroundVariations = [
+                    // 매우 밝은 버전 (90-95%)
+                    { lightness: Math.min(95, Math.max(90, l * 0.2 + 80)), saturation: Math.min(30, Math.max(15, s * 0.3)) },
+                    // 밝은 버전 (85-90%)
+                    { lightness: Math.min(90, Math.max(85, l * 0.3 + 70)), saturation: Math.min(40, Math.max(20, s * 0.4)) },
+                    // 중간 밝기 (80-85%)
+                    { lightness: Math.min(85, Math.max(80, l * 0.4 + 60)), saturation: Math.min(35, Math.max(25, s * 0.5)) }
+                ];
+                
+                backgroundVariations.forEach(variation => {
+                    const backgroundRgb = hslToRgb(h, variation.saturation, variation.lightness);
+                    backgroundColors.push(backgroundRgb);
+                });
+            });
+            
+            // 중복 제거 (거리 기준을 좀 더 엄격하게)
+            const uniqueColors = [];
+            backgroundColors.forEach(color => {
+                const isDuplicate = uniqueColors.some(existing => 
+                    getColorDistance(existing, color) < 20
+                );
+                if (!isDuplicate) {
+                    uniqueColors.push(color);
+                }
+            });
+            
+            // 5개 이하면 기본 파스텔 색상 추가
+            if (uniqueColors.length < 5) {
+                const defaultPastels = [
+                    [248, 249, 250], // 매우 연한 회색
+                    [248, 250, 252], // 매우 연한 블루
+                    [254, 252, 247], // 매우 연한 베이지
+                    [248, 250, 248], // 매우 연한 그린
+                    [252, 248, 250]  // 매우 연한 핑크
+                ];
+                
+                defaultPastels.forEach(defaultColor => {
+                    if (uniqueColors.length < 5) {
+                        const isDuplicate = uniqueColors.some(existing => 
+                            getColorDistance(existing, defaultColor) < 20
+                        );
+                        if (!isDuplicate) {
+                            uniqueColors.push(defaultColor);
+                        }
+                    }
+                });
+            }
+            
+            return uniqueColors.slice(0, 5);
+        }
+
+        function generateAnalogousPalette(colors) {
+            const analogousColors = [];
+            
+            colors.forEach(color => {
+                const [h, s, l] = rgbToHsl(color[0], color[1], color[2]);
+                
+                // 아날로그 인접 색상들 (30도 간격)
+                const analogousHues = [
+                    (h + 30) % 360,  // +30도
+                    (h + 60) % 360,  // +60도
+                    (h - 30 + 360) % 360,  // -30도
+                    (h - 60 + 360) % 360   // -60도
+                ];
+                
+                analogousHues.forEach(hue => {
+                    // 강조용으로 채도와 밝기 조정
+                    const enhancedSaturation = Math.min(85, Math.max(60, s * 1.2));
+                    const enhancedLightness = Math.min(70, Math.max(40, l * 0.8 + 20));
+                    
+                    const analogousRgb = hslToRgb(hue, enhancedSaturation, enhancedLightness);
+                    analogousColors.push(analogousRgb);
+                });
+            });
+            
+            // 중복 제거
+            const uniqueColors = [];
+            analogousColors.forEach(color => {
+                const isDuplicate = uniqueColors.some(existing => 
+                    getColorDistance(existing, color) < 25
+                );
+                if (!isDuplicate) {
+                    uniqueColors.push(color);
+                }
+            });
+            
+            return uniqueColors.slice(0, 5);
+        }
+
+        function generateTemperaturePalette(colors) {
+            const temperatureColors = [];
+            
+            colors.forEach(color => {
+                const [h, s, l] = rgbToHsl(color[0], color[1], color[2]);
+                
+                // 색상의 온도 판단 (빨간계열 = 따뜻, 파란계열 = 차가운)
+                const isWarm = (h >= 315 || h <= 45) || (h >= 45 && h <= 135); // 빨간-노랑 범위
+                
+                let contrastHues = [];
+                if (isWarm) {
+                    // 따뜻한 색상 → 차가운 색상들
+                    contrastHues = [
+                        180 + (Math.random() - 0.5) * 60,  // 청록 범위
+                        210 + (Math.random() - 0.5) * 60,  // 파란 범위
+                        240 + (Math.random() - 0.5) * 60,  // 남색 범위
+                        270 + (Math.random() - 0.5) * 60   // 보라 범위
+                    ];
+                } else {
+                    // 차가운 색상 → 따뜻한 색상들
+                    contrastHues = [
+                        0 + (Math.random() - 0.5) * 40,    // 빨간 범위
+                        30 + (Math.random() - 0.5) * 40,   // 주황 범위
+                        60 + (Math.random() - 0.5) * 40,   // 노랑 범위
+                        300 + (Math.random() - 0.5) * 40   // 마젠타 범위
+                    ];
+                }
+                
+                contrastHues.forEach(hue => {
+                    const normalizedHue = ((hue % 360) + 360) % 360;
+                    // 강조용으로 채도와 밝기 조정
+                    const enhancedSaturation = Math.min(90, Math.max(70, s * 1.3));
+                    const enhancedLightness = Math.min(65, Math.max(45, l * 0.9 + 15));
+                    
+                    const temperatureRgb = hslToRgb(normalizedHue, enhancedSaturation, enhancedLightness);
+                    temperatureColors.push(temperatureRgb);
+                });
+            });
+            
+            // 중복 제거
+            const uniqueColors = [];
+            temperatureColors.forEach(color => {
+                const isDuplicate = uniqueColors.some(existing => 
+                    getColorDistance(existing, color) < 25
+                );
+                if (!isDuplicate) {
+                    uniqueColors.push(color);
+                }
+            });
+            
+            return uniqueColors.slice(0, 5);
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast();
+            });
+        }
+
+        function showToast() {
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            
+            return [h * 360, s * 100, l * 100];
+        }
+
+        function hslToRgb(h, s, l) {
+            h /= 360;
+            s /= 100;
+            l /= 100;
+            
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            
+            let r, g, b;
+            
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        function generateComplementaryPalette(colors) {
+            const complementaryColors = [];
+            
+            colors.forEach(color => {
+                const [h, s, l] = rgbToHsl(color[0], color[1], color[2]);
+                
+                // 보색 (색상환에서 180도 반대편)
+                const complementaryHue = (h + 180) % 360;
+                const complementaryRgb = hslToRgb(complementaryHue, s, l);
+                
+                // 보색만 추가
+                complementaryColors.push(complementaryRgb);
+            });
+            
+            // 중복 제거
+            const uniqueColors = [];
+            complementaryColors.forEach(color => {
+                const isDuplicate = uniqueColors.some(existing => 
+                    getColorDistance(existing, color) < 30
+                );
+                if (!isDuplicate) {
+                    uniqueColors.push(color);
+                }
+            });
+            
+            return uniqueColors.slice(0, 5);
+        }
+
+    </script>
+</body>
+</html>
