@@ -368,9 +368,9 @@
                 <div class="info-title">📸 썸네일용 이미지 변환</div>
                 <div class="info-list">
                     • 최대 7개 이미지 업로드<br>
-                    • 각 이미지마다 2가지 사이즈로 변환: 800×800, 610×477<br>
+                    • 각 이미지마다 610×477 사이즈로 변환<br>
                     • 파일명: b1.jpg, b2.jpg ... b7.jpg<br>
-                    • 총 14개 파일 생성 (7개 × 2사이즈)
+                    • 총 7개 파일 생성
                 </div>
             </div>
 
@@ -628,6 +628,52 @@
             }
         }
 
+        // 800×800 이미지 블롭에서 610×477 생성하는 함수
+        function processImageFor610x477(imageBlob) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = () => {
+                    // 610×477 캔버스 설정
+                    canvas.width = 610;
+                    canvas.height = 477;
+                    
+                    // 흰색 배경 먼저 그리기
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, 610, 477);
+                    
+                    // 고품질 렌더링 설정
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    
+                    // 1단계: 800×800에서 위아래 120px씩 자르기 (800×560)
+                    const cropTop = 120;
+                    const cropHeight = 560; // 800 - 120 - 120
+                    
+                    // 2단계: 610 기준으로 축소 (800×560 → 610×427)
+                    const scale = 610 / 800;
+                    const scaledWidth = 610;
+                    const scaledHeight = cropHeight * scale; // 560 * 0.7625 = 427
+                    
+                    // 3단계: 610×477 캔버스 중앙에 배치
+                    const x = 0; // 가로는 정확히 맞음
+                    const y = (477 - scaledHeight) / 2; // 세로 중앙 배치
+                    
+                    ctx.drawImage(
+                        img,
+                        0, cropTop, 800, cropHeight,  // 800×800에서 위아래 120px 자른 영역
+                        x, y, scaledWidth, scaledHeight // 610×477 캔버스에 배치
+                    );
+                    
+                    canvas.toBlob(resolve, 'image/jpeg', 0.9);
+                };
+                
+                img.src = URL.createObjectURL(imageBlob);
+            });
+        }
+
         // 스마트 리사이징 + 크롭 함수 (타겟 크기 고려)
         function resizeImage(file, targetWidth, targetHeight, format, quality = 0.9) {
             return new Promise((resolve) => {
@@ -640,9 +686,18 @@
                     canvas.width = targetWidth;
                     canvas.height = targetHeight;
                     
+                    // 흰색 배경 먼저 그리기 (투명 배경 처리)
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, targetWidth, targetHeight);
+                    
+                    // 고품질 렌더링 설정
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    
+                    // 기존 크롭 방식 (800×800 등 - 이제 610×477 특별 처리 제거)
                     const targetRatio = targetWidth / targetHeight;
                     const sourceRatio = img.width / img.height;
-                    const MAX_SOURCE_SIZE = 1200; // 원본 최대 처리 크기
+                    const MAX_SOURCE_SIZE = 1200;
                     
                     let workingWidth = img.width;
                     let workingHeight = img.height;
@@ -681,14 +736,6 @@
                         cropY = (finalHeight - cropHeight) / 2;
                     }
                     
-                    // 흰색 배경 먼저 그리기 (투명 배경 처리)
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, targetWidth, targetHeight);
-                    
-                    // 고품질 렌더링 설정
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    
                     // 원본을 최적 크기로 리사이징하면서 동시에 크롭
                     const scaleX = finalWidth / img.width;
                     const scaleY = finalHeight / img.height;
@@ -720,27 +767,24 @@
             resultContainer.style.display = 'none';
 
             const zip = new JSZip();
-            const totalFiles = thumbnailFiles.length * 2;
+            const totalFiles = thumbnailFiles.length;
             let processedFiles = 0;
-
-            const sizes = [
-                { width: 800, height: 800, folder: '800' },
-                { width: 610, height: 477, folder: '610' }
-            ];
 
             for (let i = 0; i < thumbnailFiles.length; i++) {
                 const file = thumbnailFiles[i];
                 
-                for (const size of sizes) {
-                    const resizedBlob = await resizeImage(file, size.width, size.height, 'image/jpeg', 0.9);
-                    const fileName = `${size.folder}/b${i + 1}.jpg`;
-                    zip.file(fileName, resizedBlob);
-                    
-                    processedFiles++;
-                    const progress = (processedFiles / totalFiles) * 100;
-                    progressFill.style.width = progress + '%';
-                    progressText.textContent = `처리 중... ${processedFiles}/${totalFiles}`;
-                }
+                // 1단계: 800×800 생성 (임시로 사용)
+                const img800 = await resizeImage(file, 800, 800, 'image/jpeg', 0.9);
+                
+                // 2단계: 800×800 결과물로 610×477 생성
+                const img610 = await processImageFor610x477(img800);
+                const fileName610 = `b${i + 1}.jpg`;
+                zip.file(fileName610, img610);
+                
+                processedFiles++;
+                const progress = (processedFiles / totalFiles) * 100;
+                progressFill.style.width = progress + '%';
+                progressText.textContent = `처리 중... ${processedFiles}/${totalFiles}`;
             }
 
             thumbnailZip = zip;
