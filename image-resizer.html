@@ -681,6 +681,10 @@
                         cropY = (finalHeight - cropHeight) / 2;
                     }
                     
+                    // 흰색 배경 먼저 그리기 (투명 배경 처리)
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, targetWidth, targetHeight);
+                    
                     // 고품질 렌더링 설정
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
