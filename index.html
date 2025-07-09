@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛠️ Web Tools Collection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafafa;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 30px 0;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            color: #111827;
+            font-size: 3em;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .main-content {
+            padding: 40px 0;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 20px;
+            background: #f9fafb;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #6b7280;
+            transition: all 0.2s ease;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .nav-tab:last-child {
+            border-right: none;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #111827;
+            box-shadow: inset 0 -3px 0 #111827;
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 도구 목록 스타일 */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            padding: 30px;
+        }
+
+        .tool-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-color: #d1d5db;
+        }
+
+        .tool-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .tool-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        .tool-description {
+            color: #4b5563;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .tool-features {
+            margin-bottom: 20px;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            background: #e5e7eb;
+            color: #374151;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            margin: 2px 4px 2px 0;
+        }
+
+        .tool-button {
+            background: #111827;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .tool-button:hover {
+            background: #1f2937;
+            transform: translateY(-1px);
+        }
+
+        /* 문서 스타일 */
+        .docs-content {
+            padding: 30px;
+        }
+
+        .docs-accordion {
+            margin-bottom: 15px;
+        }
+
+        .accordion-header {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            background: #f3f4f6;
+        }
+
+        .accordion-header.active {
+            background: #f3f4f6;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .accordion-title {
+            font-weight: 600;
+            color: #111827;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion-icon {
+            transition: transform 0.2s ease;
+        }
+
+        .accordion-header.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            display: none;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 20px;
+            background: white;
+        }
+
+        .accordion-content.active {
+            display: block;
+        }
+
+        .accordion-content h3 {
+            color: #374151;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .accordion-content h4 {
+            color: #4b5563;
+            margin: 15px 0 8px 0;
+            font-size: 1.1em;
+        }
+
+        .accordion-content p {
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+
+        .accordion-content ul {
+            color: #6b7280;
+            margin: 10px 0 10px 20px;
+        }
+
+        .accordion-content li {
+            margin-bottom: 5px;
+        }
+
+        .accordion-content code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            font-size: 0.9em;
+        }
+
+        .accordion-content pre {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .accordion-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            h1 {
+                font-size: 2.5em;
+            }
+
+            .nav-tabs {
+                flex-direction: column;
+            }
+
+            .nav-tab {
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .nav-tab:last-child {
+                border-bottom: none;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+                padding: 20px;
+                gap: 20px;
+            }
+
+            .docs-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🛠️ Web Tools Collection</h1>
+            <p class="subtitle">이미지 처리와 웹 개발을 위한 유용한 도구들</p>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="switchTab('tools')">
+                    🔧 도구 목록
+                </button>
+                <button class="nav-tab" onclick="switchTab('docs')">
+                    📚 문서
+                </button>
+            </div>
+
+            <!-- 도구 목록 탭 -->
+            <div id="tools" class="tab-content active">
+                <div class="tools-grid">
+                    <!-- 컬러 팔레트 생성기 -->
+                    <div class="tool-card" onclick="openTool('color-palette-generator.html')">
+                        <div class="tool-icon">🎨</div>
+                        <div class="tool-title">컬러 팔레트 생성기</div>
+                        <div class="tool-description">
+                            이미지에서 5가지 다양한 용도의 컬러 팔레트를 자동으로 생성합니다.
+                        </div>
+                        <div class="tool-features">
+                            <span class="feature-tag">K-means 클러스터링</span>
+                            <span class="feature-tag">5가지 팔레트</span>
+                            <span class="feature-tag">HEX 코드 복사</span>
+                            <span class="feature-tag">반응형</span>
+                        </div>
+                        <button class="tool-button">도구 사용하기</button>
+                    </div>
+
+                    <!-- 이미지맵 생성기 -->
+                    <div class="tool-card" onclick="openTool('imgMap.html')">
+                        <div class="tool-icon">🗺️</div>
+                        <div class="tool-title">이미지맵 생성기</div>
+                        <div class="tool-description">
+                            이미지 위에 클릭 가능한 영역을 설정하고 PC/모바일용 HTML 코드를 생성합니다.
+                        </div>
+                        <div class="tool-features">
+                            <span class="feature-tag">드래그 앤 드롭</span>
+                            <span class="feature-tag">리사이즈</span>
+                            <span class="feature-tag">PC/모바일 코드</span>
+                            <span class="feature-tag">실시간 편집</span>
+                        </div>
+                        <button class="tool-button">도구 사용하기</button>
+                    </div>
+
+                    <!-- 스마트 이미지 크롭퍼 -->
+                    <div class="tool-card" onclick="openTool('image-resizer.html')">
+                        <div class="tool-icon">✂️</div>
+                        <div class="tool-title">스마트 이미지 크롭퍼</div>
+                        <div class="tool-description">
+                            스마트 크롭 알고리즘으로 썸네일과 본문용 이미지를 완벽하게 생성합니다.
+                        </div>
+                        <div class="tool-features">
+                            <span class="feature-tag">스마트 크롭</span>
+                            <span class="feature-tag">일괄 처리</span>
+                            <span class="feature-tag">ZIP 다운로드</span>
+                            <span class="feature-tag">폴더 정리</span>
+                        </div>
+                        <button class="tool-button">도구 사용하기</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 문서 탭 -->
+            <div id="docs" class="tab-content">
+                <div class="docs-content">
+                    <!-- 프로젝트 개요 -->
+                    <div class="docs-accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                📋 프로젝트 개요
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="accordion-content">
+                            <p>이 프로젝트는 웹 개발과 이미지 처리에 필요한 다양한 도구들을 모은 컬렉션입니다.</p>
+                            
+                            <h3>🎯 주요 목표</h3>
+                            <ul>
+                                <li>이미지 처리 작업의 자동화</li>
+                                <li>반복적인 웹 개발 작업의 효율화</li>
+                                <li>사용하기 쉬운 인터페이스 제공</li>
+                                <li>외부 서버 없이 브라우저에서 완전한 처리</li>
+                            </ul>
+
+                            <h3>✨ 특징</h3>
+                            <ul>
+                                <li><strong>Client-side 처리</strong>: 모든 작업이 브라우저에서 처리되어 보안성 확보</li>
+                                <li><strong>반응형 디자인</strong>: 모바일과 데스크톱에서 모두 최적화</li>
+                                <li><strong>모던한 UI</strong>: 블랙앤화이트 미니멀 디자인</li>
+                                <li><strong>고품질 처리</strong>: Canvas API를 활용한 고품질 이미지 처리</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 컬러 팔레트 생성기 -->
+                    <div class="docs-accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                🎨 컬러 팔레트 생성기
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="accordion-content">
+                            <h3>📋 주요 기능</h3>
+                            <ul>
+                                <li>🖼️ 드래그 앤 드롭 또는 클릭을 통한 이미지 업로드</li>
+                                <li>🎯 K-means 클러스터링 알고리즘 기반 색상 추출</li>
+                                <li>🌈 5가지 다양한 팔레트 동시 생성</li>
+                                <li>📋 클릭 한 번으로 HEX 코드 복사</li>
+                            </ul>
+
+                            <h3>🎨 팔레트 유형</h3>
+                            <h4>1. 🎨 대표 컬러 (Dominant Colors)</h4>
+                            <p>K-means 클러스터링을 통한 주요 색상 추출. 브랜딩, 주요 UI 컬러로 활용.</p>
+
+                            <h4>2. 🌈 보색 팔레트 (Complementary Colors)</h4>
+                            <p>색상환에서 180° 정반대 색상들. 강렬한 대비와 액센트 컬러로 활용.</p>
+
+                            <h4>3. 🌅 배경용 팔레트 (Background Colors)</h4>
+                            <p>높은 명도와 낮은 채도로 가독성 최적화. 웹/앱 배경으로 활용.</p>
+
+                            <h4>4. 🌿 아날로그 대비 (Analogous Contrast)</h4>
+                            <p>색상환에서 인접한 색상들의 조화로운 대비. UI 액센트로 활용.</p>
+
+                            <h4>5. 🌡️ 온도 대비 (Temperature Contrast)</h4>
+                            <p>따뜻함과 차가움의 감정적 대비. CTA 버튼, 강한 시각적 포인트로 활용.</p>
+                        </div>
+                    </div>
+
+                    <!-- 이미지맵 생성기 -->
+                    <div class="docs-accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                🗺️ 이미지맵 생성기
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="accordion-content">
+                            <h3>✨ 주요 기능</h3>
+                            <ul>
+                                <li>🖼️ 이미지 업로드 및 실시간 미리보기</li>
+                                <li>📍 클릭으로 영역 설정 (두 점으로 사각형 생성)</li>
+                                <li>🔄 드래그&드롭으로 영역 이동</li>
+                                <li>📏 모서리 드래그로 크기 조절</li>
+                                <li>🗑️ 개별 영역 삭제 기능</li>
+                                <li>🔗 영역별 링크 URL 설정</li>
+                                <li>💻 PC/모바일 구분 코드 생성</li>
+                            </ul>
+
+                            <h3>🔧 기술적 구현</h3>
+                            <h4>좌표 변환 시스템</h4>
+                            <pre><code>// 1. 클릭 좌표를 비율로 변환
+const x = (e.clientX - rect.left) / rect.width;
+const y = (e.clientY - rect.top) / rect.height;
+
+// 2. 실제 이미지 크기로 스케일링
+const scaleX = img.naturalWidth / wrapper.offsetWidth;
+const scaleY = img.naturalHeight / wrapper.offsetHeight;</code></pre>
+
+                            <h4>반응형 코드 생성</h4>
+                            <p><strong>PC용 (절대 좌표)</strong>:</p>
+                            <pre><code>&lt;area shape='rect' target='_blank' href='링크' 
+      coords='x1,y1,x2,y2' alt='링크 바로가기'&gt;</code></pre>
+
+                            <p><strong>모바일용 (퍼센트 좌표)</strong>:</p>
+                            <pre><code>&lt;a href='링크' target='_blank' class='event_btn' 
+   style='left:10%;top:20%;width:30%;height:15%'&gt;&lt;/a&gt;</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- 스마트 이미지 크롭퍼 -->
+                    <div class="docs-accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                ✂️ 스마트 이미지 크롭퍼
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="accordion-content">
+                            <h3>📸 썸네일용 (다중 업로드)</h3>
+                            <ul>
+                                <li>최대 7개 이미지 드래그 앤 드롭 업로드</li>
+                                <li>자동 파일명: b1.jpg ~ b7.jpg</li>
+                                <li>2가지 사이즈: 800×800, 610×477</li>
+                                <li>폴더별 정리: 800/, 610/</li>
+                                <li>총 14개 파일 생성</li>
+                            </ul>
+
+                            <h3>📄 본문용 (단일 업로드)</h3>
+                            <ul>
+                                <li>1개 이미지 업로드</li>
+                                <li>정방형 12사이즈: 60, 120, 125, 130, 160, 180, 210, 240, 303, 470, 500, 800px</li>
+                                <li>2가지 형식: PNG, JPG</li>
+                                <li>총 24개 파일 생성</li>
+                            </ul>
+
+                            <h3>🔧 스마트 크롭 알고리즘</h3>
+                            <p>원본 이미지 크기를 고려한 2단계 처리:</p>
+                            <ol>
+                                <li><strong>원본 보호</strong>: 1200px 이상이면 먼저 축소</li>
+                                <li><strong>타겟 고려</strong>: 타겟 크기를 채울 수 있는 최소 크기로 확대</li>
+                                <li><strong>중앙 크롭</strong>: 여분 부분은 중앙 기준으로 크롭</li>
+                                <li><strong>여백 방지</strong>: 타겟을 완전히 채우도록 보장</li>
+                            </ol>
+
+                            <p>예시: 1920×1080 → 800×800 변환</p>
+                            <ul>
+                                <li>1단계: 1200×675로 축소 (원본 보호)</li>
+                                <li>2단계: 세로 기준으로 1422×800 크기로 확대</li>
+                                <li>3단계: 가로 311px씩 크롭 → 800×800 완성</li>
+                                <li>결과: 상품 전체가 보이면서 여백 없음!</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 설치 및 사용 -->
+                    <div class="docs-accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                🚀 설치 및 사용
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="accordion-content">
+                            <h3>📁 프로젝트 구조</h3>
+                            <pre><code>web-tools-collection/
+├── index.html                      # 메인 인덱스 페이지
+├── color-palette-generator.html    # 컬러 팔레트 생성기
+├── imgMap.html                     # 이미지맵 생성기
+├── image-resizer.html              # 이미지 리사이저
+└── README.md                       # 프로젝트 문서</code></pre>
+
+                            <h3>💻 브라우저 호환성</h3>
+                            <ul>
+                                <li><strong>Modern Browsers</strong>: Chrome, Firefox, Safari, Edge</li>
+                                <li><strong>Required APIs</strong>: Canvas, FileReader, Clipboard API</li>
+                                <li><strong>Responsive</strong>: 모든 디바이스에서 최적화된 UX</li>
+                            </ul>
+
+                            <h3>🔧 기술 스택</h3>
+                            <ul>
+                                <li><strong>Vanilla JavaScript</strong> - 외부 라이브러리 의존성 최소화</li>
+                                <li><strong>Canvas API</strong> - 고품질 이미지 처리</li>
+                                <li><strong>CSS3</strong> - 모던한 UI 및 애니메이션</li>
+                                <li><strong>HTML5</strong> - 드래그 앤 드롭 API</li>
+                                <li><strong>JSZip</strong> - ZIP 파일 생성 (이미지 리사이저에서만 사용)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 탭 전환
+        function switchTab(tabName) {
+            // 모든 탭과 콘텐츠 비활성화
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // 선택된 탭과 콘텐츠 활성화
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // 아코디언 토글
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const isActive = header.classList.contains('active');
+
+            // 모든 아코디언 닫기
+            document.querySelectorAll('.accordion-header').forEach(h => {
+                h.classList.remove('active');
+                h.nextElementSibling.classList.remove('active');
+            });
+
+            // 클릭된 아코디언이 비활성화 상태였다면 활성화
+            if (!isActive) {
+                header.classList.add('active');
+                content.classList.add('active');
+            }
+        }
+
+        // 도구 열기
+        function openTool(filename) {
+            window.open(filename, '_blank');
+        }
+
+        // 페이지 로드 시 첫 번째 아코디언 열기
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstAccordion = document.querySelector('.accordion-header');
+            if (firstAccordion) {
+                firstAccordion.classList.add('active');
+                firstAccordion.nextElementSibling.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>
