@@ -822,7 +822,7 @@
             for (const size of sizes) {
                 for (const format of formats) {
                     const resizedBlob = await resizeImage(contentFile, size, size, format.mime, 0.9);
-                    const fileName = `${size}x${size}.${format.ext}`;
+                    const fileName = `${size}.${format.ext}`;
                     zip.file(fileName, resizedBlob);
                     
                     processedFiles++;
