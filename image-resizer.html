@@ -1,868 +1,874 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 이미지 크롭퍼</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #fafafa;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-        }
-
-        .header {
-            padding: 30px 40px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        h1 {
-            color: #111827;
-            font-size: 2.5em;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #6b7280;
-            font-size: 1.1em;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 20px;
-            background: #f9fafb;
-            border: none;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #6b7280;
-            transition: all 0.2s ease;
-            border-right: 1px solid #e5e7eb;
-        }
-
-        .tab:last-child {
-            border-right: none;
-        }
-
-        .tab.active {
-            background: white;
-            color: #111827;
-            border-bottom: 2px solid #111827;
-        }
-
-        .tab:hover:not(.active) {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .tab-content {
-            padding: 40px;
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .upload-area {
-            border: 2px dashed #d1d5db;
-            border-radius: 12px;
-            padding: 60px 40px;
-            text-align: center;
-            margin-bottom: 30px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: #f9fafb;
-        }
-
-        .upload-area:hover {
-            border-color: #6b7280;
-            background: #f3f4f6;
-        }
-
-        .upload-area.dragover {
-            border-color: #374151;
-            background: #f3f4f6;
-            transform: scale(1.01);
-        }
-
-        .upload-icon {
-            font-size: 4em;
-            color: #6b7280;
-            margin-bottom: 20px;
-        }
-
-        .upload-text {
-            font-size: 1.3em;
-            color: #4b5563;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .upload-subtext {
-            color: #6b7280;
-            font-size: 1em;
-            margin-bottom: 20px;
-        }
-
-        .upload-btn {
-            background: #111827;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .upload-btn:hover {
-            background: #1f2937;
-            transform: translateY(-1px);
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .preview-container {
-            display: none;
-            margin-bottom: 30px;
-        }
-
-        .preview-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .preview-item {
-            position: relative;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            overflow: hidden;
-            background: white;
-        }
-
-        .preview-img {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-        }
-
-        .preview-name {
-            padding: 8px;
-            font-size: 0.8em;
-            color: #6b7280;
-            text-align: center;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .remove-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 24px;
-            height: 24px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .process-btn {
-            background: #111827;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-
-        .process-btn:hover:not(:disabled) {
-            background: #1f2937;
-            transform: translateY(-1px);
-        }
-
-        .process-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .progress-container {
-            display: none;
-            margin-bottom: 20px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #111827;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-
-        .progress-text {
-            text-align: center;
-            margin-top: 10px;
-            color: #6b7280;
-            font-size: 0.9em;
-        }
-
-        .result-container {
-            display: none;
-        }
-
-        .result-summary {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .result-title {
-            color: #166534;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .result-stats {
-            color: #15803d;
-            font-size: 0.9em;
-        }
-
-        .download-btn {
-            background: #059669;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            width: 100%;
-        }
-
-        .download-btn:hover {
-            background: #047857;
-            transform: translateY(-1px);
-        }
-
-        .info-box {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .info-title {
-            color: #1e40af;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .info-list {
-            color: #1e3a8a;
-            font-size: 0.9em;
-            line-height: 1.6;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                border-radius: 8px;
-            }
-
-            .header {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 2em;
-            }
-
-            .tab-content {
-                padding: 20px;
-            }
-
-            .upload-area {
-                padding: 40px 20px;
-            }
-
-            .preview-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-                gap: 10px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>✂️ 스마트 이미지 크롭퍼</h1>
-            <p class="subtitle">썸네일과 본문용 이미지를 한번에 생성하세요</p>
-        </div>
-
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('thumbnail')">
-                📸 썸네일용 (다중 업로드)
-            </button>
-            <button class="tab" onclick="switchTab('content')">
-                📄 본문용 (단일 업로드)
-            </button>
-        </div>
-
-        <!-- 썸네일용 탭 -->
-        <div id="thumbnail" class="tab-content active">
-            <div class="info-box">
-                <div class="info-title">📸 썸네일용 이미지 변환</div>
-                <div class="info-list">
-                    • 최대 7개 이미지 업로드<br>
-                    • 각 이미지마다 610×477 사이즈로 변환<br>
-                    • 파일명: b1.jpg, b2.jpg ... b7.jpg<br>
-                    • 총 7개 파일 생성
-                </div>
-            </div>
-
-            <div class="upload-area" id="thumbnailUpload">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">이미지를 드래그하여 업로드하세요</div>
-                <div class="upload-subtext">최대 7개 파일 (JPG, PNG, GIF, WebP)</div>
-                <button class="upload-btn" onclick="document.getElementById('thumbnailInput').click()">
-                    파일 선택
-                </button>
-                <input type="file" id="thumbnailInput" class="file-input" multiple accept="image/*">
-            </div>
-
-            <div id="thumbnailPreview" class="preview-container">
-                <h3>업로드된 이미지 (<span id="thumbnailCount">0</span>/7)</h3>
-                <div id="thumbnailGrid" class="preview-grid"></div>
-            </div>
-
-            <button id="thumbnailProcess" class="process-btn" disabled>
-                썸네일 이미지 생성하기
-            </button>
-
-            <div id="thumbnailProgress" class="progress-container">
-                <div class="progress-bar">
-                    <div id="thumbnailProgressFill" class="progress-fill"></div>
-                </div>
-                <div id="thumbnailProgressText" class="progress-text">처리 중...</div>
-            </div>
-
-            <div id="thumbnailResult" class="result-container">
-                <div class="result-summary">
-                    <div class="result-title">✅ 변환 완료!</div>
-                    <div class="result-stats" id="thumbnailStats"></div>
-                </div>
-                <button id="thumbnailDownload" class="download-btn">
-                    ZIP 파일로 다운로드
-                </button>
-            </div>
-        </div>
-
-        <!-- 본문용 탭 -->
-        <div id="content" class="tab-content">
-            <div class="info-box">
-                <div class="info-title">📄 본문용 이미지 변환</div>
-                <div class="info-list">
-                    • 1개 이미지 업로드<br>
-                    • 정방형으로 12가지 사이즈 변환: 60, 120, 125, 130, 160, 180, 210, 240, 303, 470, 500, 800px<br>
-                    • PNG와 JPG 두 가지 형식으로 생성<br>
-                    • 총 24개 파일 생성 (12사이즈 × 2형식)
-                </div>
-            </div>
-
-            <div class="upload-area" id="contentUpload">
-                <div class="upload-icon">🖼️</div>
-                <div class="upload-text">이미지를 드래그하여 업로드하세요</div>
-                <div class="upload-subtext">1개 파일만 (JPG, PNG, GIF, WebP)</div>
-                <button class="upload-btn" onclick="document.getElementById('contentInput').click()">
-                    파일 선택
-                </button>
-                <input type="file" id="contentInput" class="file-input" accept="image/*">
-            </div>
-
-            <div id="contentPreview" class="preview-container">
-                <h3>업로드된 이미지</h3>
-                <div id="contentGrid" class="preview-grid"></div>
-            </div>
-
-            <button id="contentProcess" class="process-btn" disabled>
-                본문용 이미지 생성하기
-            </button>
-
-            <div id="contentProgress" class="progress-container">
-                <div class="progress-bar">
-                    <div id="contentProgressFill" class="progress-fill"></div>
-                </div>
-                <div id="contentProgressText" class="progress-text">처리 중...</div>
-            </div>
-
-            <div id="contentResult" class="result-container">
-                <div class="result-summary">
-                    <div class="result-title">✅ 변환 완료!</div>
-                    <div class="result-stats" id="contentStats"></div>
-                </div>
-                <button id="contentDownload" class="download-btn">
-                    ZIP 파일로 다운로드
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 전역 변수
-        let thumbnailFiles = [];
-        let contentFile = null;
-        let thumbnailZip = null;
-        let contentZip = null;
-
-        // 탭 전환
-        function switchTab(tabName) {
-            // 모든 탭과 콘텐츠 비활성화
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            // 선택된 탭과 콘텐츠 활성화
-            event.target.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-            
-            // 결과 초기화
-            resetResults();
-        }
-
-        // 결과 초기화
-        function resetResults() {
-            document.querySelectorAll('.progress-container, .result-container').forEach(el => {
-                el.style.display = 'none';
-            });
-            document.querySelectorAll('.progress-fill').forEach(el => {
-                el.style.width = '0%';
-            });
-        }
-
-        // 썸네일용 업로드 설정
-        setupUpload('thumbnail', 7, (files) => {
-            thumbnailFiles = Array.from(files).slice(0, 7);
-            displayThumbnailPreview();
-            document.getElementById('thumbnailProcess').disabled = thumbnailFiles.length === 0;
-        });
-
-        // 본문용 업로드 설정
-        setupUpload('content', 1, (files) => {
-            contentFile = files[0];
-            displayContentPreview();
-            document.getElementById('contentProcess').disabled = !contentFile;
-        });
-
-        // 업로드 기능 설정
-        function setupUpload(type, maxFiles, callback) {
-            const uploadArea = document.getElementById(type + 'Upload');
-            const fileInput = document.getElementById(type + 'Input');
-
-            // 드래그 앤 드롭
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                const files = Array.from(e.dataTransfer.files).filter(file => 
-                    file.type.startsWith('image/')
-                ).slice(0, maxFiles);
-                callback(files);
-            });
-
-            // 클릭 업로드
-            uploadArea.addEventListener('click', (e) => {
-                if (e.target.id !== type + 'Input' && !e.target.closest('.upload-btn')) {
-                    fileInput.click();
-                }
-            });
-
-            fileInput.addEventListener('change', (e) => {
-                const files = Array.from(e.target.files).filter(file => 
-                    file.type.startsWith('image/')
-                ).slice(0, maxFiles);
-                callback(files);
-                e.target.value = '';
-            });
-        }
-
-        // 썸네일 미리보기 표시
-        function displayThumbnailPreview() {
-            const grid = document.getElementById('thumbnailGrid');
-            const container = document.getElementById('thumbnailPreview');
-            const count = document.getElementById('thumbnailCount');
-            
-            grid.innerHTML = '';
-            count.textContent = thumbnailFiles.length;
-
-            if (thumbnailFiles.length > 0) {
-                container.style.display = 'block';
-                
-                thumbnailFiles.forEach((file, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'preview-item';
-                    
-                    const img = document.createElement('img');
-                    img.className = 'preview-img';
-                    img.src = URL.createObjectURL(file);
-                    
-                    const name = document.createElement('div');
-                    name.className = 'preview-name';
-                    name.textContent = `b${index + 1}.jpg`;
-                    
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-btn';
-                    removeBtn.textContent = '×';
-                    removeBtn.onclick = () => {
-                        thumbnailFiles.splice(index, 1);
-                        displayThumbnailPreview();
-                        document.getElementById('thumbnailProcess').disabled = thumbnailFiles.length === 0;
-                    };
-                    
-                    item.appendChild(img);
-                    item.appendChild(name);
-                    item.appendChild(removeBtn);
-                    grid.appendChild(item);
-                });
-            } else {
-                container.style.display = 'none';
-            }
-        }
-
-        // 본문용 미리보기 표시
-        function displayContentPreview() {
-            const grid = document.getElementById('contentGrid');
-            const container = document.getElementById('contentPreview');
-            
-            grid.innerHTML = '';
-
-            if (contentFile) {
-                container.style.display = 'block';
-                
-                const item = document.createElement('div');
-                item.className = 'preview-item';
-                
-                const img = document.createElement('img');
-                img.className = 'preview-img';
-                img.src = URL.createObjectURL(contentFile);
-                
-                const name = document.createElement('div');
-                name.className = 'preview-name';
-                name.textContent = contentFile.name;
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-btn';
-                removeBtn.textContent = '×';
-                removeBtn.onclick = () => {
-                    contentFile = null;
-                    displayContentPreview();
-                    document.getElementById('contentProcess').disabled = true;
-                };
-                
-                item.appendChild(img);
-                item.appendChild(name);
-                item.appendChild(removeBtn);
-                grid.appendChild(item);
-            } else {
-                container.style.display = 'none';
-            }
-        }
-
-        // 800×800 이미지 블롭에서 610×477 생성하는 함수
-        function processImageFor610x477(imageBlob) {
-            return new Promise((resolve) => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                
-                img.onload = () => {
-                    // 610×477 캔버스 설정
-                    canvas.width = 610;
-                    canvas.height = 477;
-                    
-                    // 흰색 배경 먼저 그리기
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, 610, 477);
-                    
-                    // 고품질 렌더링 설정
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    
-                    // 1단계: 800×800에서 위아래 120px씩 자르기 (800×560)
-                    const cropTop = 120;
-                    const cropHeight = 560; // 800 - 120 - 120
-                    
-                    // 2단계: 610 기준으로 축소 (800×560 → 610×427)
-                    const scale = 610 / 800;
-                    const scaledWidth = 610;
-                    const scaledHeight = cropHeight * scale; // 560 * 0.7625 = 427
-                    
-                    // 3단계: 610×477 캔버스 중앙에 배치
-                    const x = 0; // 가로는 정확히 맞음
-                    const y = (477 - scaledHeight) / 2; // 세로 중앙 배치
-                    
-                    ctx.drawImage(
-                        img,
-                        0, cropTop, 800, cropHeight,  // 800×800에서 위아래 120px 자른 영역
-                        x, y, scaledWidth, scaledHeight // 610×477 캔버스에 배치
-                    );
-                    
-                    canvas.toBlob(resolve, 'image/jpeg', 0.9);
-                };
-                
-                img.src = URL.createObjectURL(imageBlob);
-            });
-        }
-
-        // 스마트 리사이징 + 크롭 함수 (타겟 크기 고려)
-        function resizeImage(file, targetWidth, targetHeight, format, quality = 0.9) {
-            return new Promise((resolve) => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                
-                img.onload = () => {
-                    // 캔버스 크기 설정
-                    canvas.width = targetWidth;
-                    canvas.height = targetHeight;
-                    
-                    // JPG 형식일 때만 흰색 배경 그리기 (PNG는 투명 배경 유지)
-                    if (format === 'image/jpeg') {
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, targetWidth, targetHeight);
-                    }
-                    
-                    // 고품질 렌더링 설정
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    
-                    // 기존 크롭 방식 (800×800 등 - 이제 610×477 특별 처리 제거)
-                    const targetRatio = targetWidth / targetHeight;
-                    const sourceRatio = img.width / img.height;
-                    const MAX_SOURCE_SIZE = 1200;
-                    
-                    let workingWidth = img.width;
-                    let workingHeight = img.height;
-                    
-                    // 1단계: 원본이 너무 크면 먼저 축소 (비율 유지)
-                    const maxOriginalSide = Math.max(img.width, img.height);
-                    if (maxOriginalSide > MAX_SOURCE_SIZE) {
-                        const preScale = MAX_SOURCE_SIZE / maxOriginalSide;
-                        workingWidth = img.width * preScale;
-                        workingHeight = img.height * preScale;
-                    }
-                    
-                    // 2단계: 타겟 크기를 고려한 최적 크기 계산
-                    let finalWidth, finalHeight;
-                    let cropX, cropY, cropWidth, cropHeight;
-                    
-                    if (sourceRatio > targetRatio) {
-                        // 원본이 더 넓음 → 세로를 타겟에 맞춰 확대, 가로는 크롭
-                        finalHeight = Math.max(targetHeight, workingHeight);
-                        finalWidth = finalHeight * sourceRatio;
-                        
-                        // 크롭 영역 계산 (중앙 기준)
-                        cropHeight = finalHeight;
-                        cropWidth = finalHeight * targetRatio;
-                        cropX = (finalWidth - cropWidth) / 2;
-                        cropY = 0;
-                    } else {
-                        // 원본이 더 높음 → 가로를 타겟에 맞춰 확대, 세로는 크롭
-                        finalWidth = Math.max(targetWidth, workingWidth);
-                        finalHeight = finalWidth / sourceRatio;
-                        
-                        // 크롭 영역 계산 (중앙 기준)
-                        cropWidth = finalWidth;
-                        cropHeight = finalWidth / targetRatio;
-                        cropX = 0;
-                        cropY = (finalHeight - cropHeight) / 2;
-                    }
-                    
-                    // 원본을 최적 크기로 리사이징하면서 동시에 크롭
-                    const scaleX = finalWidth / img.width;
-                    const scaleY = finalHeight / img.height;
-                    
-                    ctx.drawImage(
-                        img,
-                        cropX / scaleX, cropY / scaleY, cropWidth / scaleX, cropHeight / scaleY,  // 원본에서의 크롭 영역
-                        0, 0, targetWidth, targetHeight  // 타겟 전체 영역
-                    );
-                    
-                    canvas.toBlob(resolve, format, quality);
-                };
-                
-                img.src = URL.createObjectURL(file);
-            });
-        }
-
-        // 썸네일 처리
-        document.getElementById('thumbnailProcess').addEventListener('click', async () => {
-            const processBtn = document.getElementById('thumbnailProcess');
-            const progressContainer = document.getElementById('thumbnailProgress');
-            const progressFill = document.getElementById('thumbnailProgressFill');
-            const progressText = document.getElementById('thumbnailProgressText');
-            const resultContainer = document.getElementById('thumbnailResult');
-            const statsElement = document.getElementById('thumbnailStats');
-
-            processBtn.disabled = true;
-            progressContainer.style.display = 'block';
-            resultContainer.style.display = 'none';
-
-            const zip = new JSZip();
-            const totalFiles = thumbnailFiles.length;
-            let processedFiles = 0;
-
-            for (let i = 0; i < thumbnailFiles.length; i++) {
-                const file = thumbnailFiles[i];
-                
-                // 1단계: 800×800 생성 (임시로 사용)
-                const img800 = await resizeImage(file, 800, 800, 'image/jpeg', 0.9);
-                
-                // 2단계: 800×800 결과물로 610×477 생성
-                const img610 = await processImageFor610x477(img800);
-                const fileName610 = `b${i + 1}.jpg`;
-                zip.file(fileName610, img610);
-                
-                processedFiles++;
-                const progress = (processedFiles / totalFiles) * 100;
-                progressFill.style.width = progress + '%';
-                progressText.textContent = `처리 중... ${processedFiles}/${totalFiles}`;
-            }
-
-            thumbnailZip = zip;
-            progressContainer.style.display = 'none';
-            resultContainer.style.display = 'block';
-            statsElement.textContent = `${thumbnailFiles.length}개 이미지로 ${totalFiles}개 파일 생성`;
-            processBtn.disabled = false;
-        });
-
-        // 본문용 처리
-        document.getElementById('contentProcess').addEventListener('click', async () => {
-            const processBtn = document.getElementById('contentProcess');
-            const progressContainer = document.getElementById('contentProgress');
-            const progressFill = document.getElementById('contentProgressFill');
-            const progressText = document.getElementById('contentProgressText');
-            const resultContainer = document.getElementById('contentResult');
-            const statsElement = document.getElementById('contentStats');
-
-            processBtn.disabled = true;
-            progressContainer.style.display = 'block';
-            resultContainer.style.display = 'none';
-
-            const zip = new JSZip();
-            const sizes = [60, 120, 125, 130, 160, 180, 210, 240, 303, 470, 500, 800];
-            const formats = [
-                { ext: 'png', mime: 'image/png' },
-                { ext: 'jpg', mime: 'image/jpeg' }
-            ];
-            
-            const totalFiles = sizes.length * formats.length;
-            let processedFiles = 0;
-
-            for (const size of sizes) {
-                for (const format of formats) {
-                    const resizedBlob = await resizeImage(contentFile, size, size, format.mime, 0.9);
-                    const fileName = `${size}.${format.ext}`;
-                    zip.file(fileName, resizedBlob);
-                    
-                    processedFiles++;
-                    const progress = (processedFiles / totalFiles) * 100;
-                    progressFill.style.width = progress + '%';
-                    progressText.textContent = `처리 중... ${processedFiles}/${totalFiles}`;
-                }
-            }
-
-            contentZip = zip;
-            progressContainer.style.display = 'none';
-            resultContainer.style.display = 'block';
-            statsElement.textContent = `1개 이미지로 ${totalFiles}개 파일 생성`;
-            processBtn.disabled = false;
-        });
-
-        // 다운로드 기능
-        document.getElementById('thumbnailDownload').addEventListener('click', async () => {
-            if (thumbnailZip) {
-                const content = await thumbnailZip.generateAsync({ type: 'blob' });
-                const url = URL.createObjectURL(content);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'thumbnail-images.zip';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-        });
-
-        document.getElementById('contentDownload').addEventListener('click', async () => {
-            if (contentZip) {
-                const content = await contentZip.generateAsync({ type: 'blob' });
-                const url = URL.createObjectURL(content);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'content-images.zip';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-        });
-    </script>
-</body>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>스마트 이미지 크롭퍼</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+				background: #fafafa;
+				min-height: 100vh;
+				padding: 20px;
+			}
+
+			.container {
+				max-width: 1000px;
+				margin: 0 auto;
+				background: white;
+				border-radius: 12px;
+				border: 1px solid #e5e7eb;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+				overflow: hidden;
+			}
+
+			.header {
+				padding: 30px 40px;
+				border-bottom: 1px solid #e5e7eb;
+			}
+
+			h1 {
+				color: #111827;
+				font-size: 2.5em;
+				font-weight: 700;
+				letter-spacing: -0.025em;
+				text-align: center;
+				margin-bottom: 10px;
+			}
+
+			.subtitle {
+				text-align: center;
+				color: #6b7280;
+				font-size: 1.1em;
+			}
+
+			.tabs {
+				display: flex;
+				border-bottom: 1px solid #e5e7eb;
+			}
+
+			.tab {
+				flex: 1;
+				padding: 20px;
+				background: #f9fafb;
+				border: none;
+				cursor: pointer;
+				font-size: 1.1em;
+				font-weight: 600;
+				color: #6b7280;
+				transition: all 0.2s ease;
+				border-right: 1px solid #e5e7eb;
+			}
+
+			.tab:last-child {
+				border-right: none;
+			}
+
+			.tab.active {
+				background: white;
+				color: #111827;
+				border-bottom: 2px solid #111827;
+			}
+
+			.tab:hover:not(.active) {
+				background: #f3f4f6;
+				color: #374151;
+			}
+
+			.tab-content {
+				padding: 40px;
+				display: none;
+			}
+
+			.tab-content.active {
+				display: block;
+			}
+
+			.upload-area {
+				border: 2px dashed #d1d5db;
+				border-radius: 12px;
+				padding: 60px 40px;
+				text-align: center;
+				margin-bottom: 30px;
+				transition: all 0.3s ease;
+				cursor: pointer;
+				background: #f9fafb;
+			}
+
+			.upload-area:hover {
+				border-color: #6b7280;
+				background: #f3f4f6;
+			}
+
+			.upload-area.dragover {
+				border-color: #374151;
+				background: #f3f4f6;
+				transform: scale(1.01);
+			}
+
+			.upload-icon {
+				font-size: 4em;
+				color: #6b7280;
+				margin-bottom: 20px;
+			}
+
+			.upload-text {
+				font-size: 1.3em;
+				color: #4b5563;
+				margin-bottom: 10px;
+				font-weight: 600;
+			}
+
+			.upload-subtext {
+				color: #6b7280;
+				font-size: 1em;
+				margin-bottom: 20px;
+			}
+
+			.upload-btn {
+				background: #111827;
+				color: white;
+				border: none;
+				padding: 12px 24px;
+				border-radius: 8px;
+				font-size: 1em;
+				font-weight: 600;
+				cursor: pointer;
+				transition: all 0.2s ease;
+			}
+
+			.upload-btn:hover {
+				background: #1f2937;
+				transform: translateY(-1px);
+			}
+
+			.file-input {
+				display: none;
+			}
+
+			.preview-container {
+				display: none;
+				margin-bottom: 30px;
+			}
+
+			.preview-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+				gap: 15px;
+				margin-bottom: 20px;
+			}
+
+			.preview-item {
+				position: relative;
+				border: 1px solid #e5e7eb;
+				border-radius: 8px;
+				overflow: hidden;
+				background: white;
+			}
+
+			.preview-img {
+				width: 100%;
+				height: 120px;
+				object-fit: cover;
+			}
+
+			.preview-name {
+				padding: 8px;
+				font-size: 0.8em;
+				color: #6b7280;
+				text-align: center;
+				border-top: 1px solid #e5e7eb;
+			}
+
+			.remove-btn {
+				position: absolute;
+				top: 5px;
+				right: 5px;
+				width: 24px;
+				height: 24px;
+				background: rgba(0, 0, 0, 0.7);
+				color: white;
+				border: none;
+				border-radius: 50%;
+				cursor: pointer;
+				font-size: 12px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.process-btn {
+				background: #111827;
+				color: white;
+				border: none;
+				padding: 15px 30px;
+				border-radius: 8px;
+				font-size: 1.1em;
+				font-weight: 600;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				width: 100%;
+				margin-bottom: 20px;
+			}
+
+			.process-btn:hover:not(:disabled) {
+				background: #1f2937;
+				transform: translateY(-1px);
+			}
+
+			.process-btn:disabled {
+				background: #9ca3af;
+				cursor: not-allowed;
+				transform: none;
+			}
+
+			.progress-container {
+				display: none;
+				margin-bottom: 20px;
+			}
+
+			.progress-bar {
+				width: 100%;
+				height: 8px;
+				background: #e5e7eb;
+				border-radius: 4px;
+				overflow: hidden;
+			}
+
+			.progress-fill {
+				height: 100%;
+				background: #111827;
+				transition: width 0.3s ease;
+				width: 0%;
+			}
+
+			.progress-text {
+				text-align: center;
+				margin-top: 10px;
+				color: #6b7280;
+				font-size: 0.9em;
+			}
+
+			.result-container {
+				display: none;
+			}
+
+			.result-summary {
+				background: #f0fdf4;
+				border: 1px solid #bbf7d0;
+				border-radius: 8px;
+				padding: 20px;
+				margin-bottom: 20px;
+			}
+
+			.result-title {
+				color: #166534;
+				font-weight: 600;
+				margin-bottom: 10px;
+			}
+
+			.result-stats {
+				color: #15803d;
+				font-size: 0.9em;
+			}
+
+			.download-btn {
+				background: #059669;
+				color: white;
+				border: none;
+				padding: 15px 30px;
+				border-radius: 8px;
+				font-size: 1.1em;
+				font-weight: 600;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				width: 100%;
+			}
+
+			.download-btn:hover {
+				background: #047857;
+				transform: translateY(-1px);
+			}
+
+			.info-box {
+				background: #eff6ff;
+				border: 1px solid #bfdbfe;
+				border-radius: 8px;
+				padding: 20px;
+				margin-bottom: 20px;
+			}
+
+			.info-title {
+				color: #1e40af;
+				font-weight: 600;
+				margin-bottom: 10px;
+			}
+
+			.info-list {
+				color: #1e3a8a;
+				font-size: 0.9em;
+				line-height: 1.6;
+			}
+
+			@media (max-width: 768px) {
+				.container {
+					margin: 10px;
+					border-radius: 8px;
+				}
+
+				.header {
+					padding: 20px;
+				}
+
+				h1 {
+					font-size: 2em;
+				}
+
+				.tab-content {
+					padding: 20px;
+				}
+
+				.upload-area {
+					padding: 40px 20px;
+				}
+
+				.preview-grid {
+					grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+					gap: 10px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>✂️ 스마트 이미지 크롭퍼</h1>
+				<p class="subtitle">썸네일과 본문용 이미지를 한번에 생성하세요</p>
+			</div>
+
+			<div class="tabs">
+				<button class="tab active" onclick="switchTab('thumbnail')">📸 썸네일용 (다중 업로드)</button>
+				<button class="tab" onclick="switchTab('content')">📄 본문용 (단일 업로드)</button>
+			</div>
+
+			<!-- 썸네일용 탭 -->
+			<div id="thumbnail" class="tab-content active">
+				<div class="info-box">
+					<div class="info-title">📸 썸네일용 이미지 변환</div>
+					<div class="info-list">
+						• 최대 7개 이미지 업로드
+						<br />
+						• 각 이미지마다 610×477 사이즈로 변환
+						<br />
+						• 파일명: b1.jpg, b2.jpg ... b7.jpg
+						<br />
+						• 총 7개 파일 생성
+					</div>
+				</div>
+
+				<div class="upload-area" id="thumbnailUpload">
+					<div class="upload-icon">📁</div>
+					<div class="upload-text">이미지를 드래그하여 업로드하세요</div>
+					<div class="upload-subtext">최대 7개 파일 (JPG, PNG, GIF, WebP)</div>
+					<button class="upload-btn" onclick="document.getElementById('thumbnailInput').click()">파일 선택</button>
+					<input type="file" id="thumbnailInput" class="file-input" multiple accept="image/*" />
+				</div>
+
+				<div id="thumbnailPreview" class="preview-container">
+					<h3>
+						업로드된 이미지 (
+						<span id="thumbnailCount">0</span>
+						/7)
+					</h3>
+					<div id="thumbnailGrid" class="preview-grid"></div>
+				</div>
+
+				<button id="thumbnailProcess" class="process-btn" disabled>썸네일 이미지 생성하기</button>
+
+				<div id="thumbnailProgress" class="progress-container">
+					<div class="progress-bar">
+						<div id="thumbnailProgressFill" class="progress-fill"></div>
+					</div>
+					<div id="thumbnailProgressText" class="progress-text">처리 중...</div>
+				</div>
+
+				<div id="thumbnailResult" class="result-container">
+					<div class="result-summary">
+						<div class="result-title">✅ 변환 완료!</div>
+						<div class="result-stats" id="thumbnailStats"></div>
+					</div>
+					<button id="thumbnailDownload" class="download-btn">ZIP 파일로 다운로드</button>
+				</div>
+			</div>
+
+			<!-- 본문용 탭 -->
+			<div id="content" class="tab-content">
+				<div class="info-box">
+					<div class="info-title">📄 본문용 이미지 변환</div>
+					<div class="info-list">
+						• 1개 이미지 업로드
+						<br />
+						• 정방형으로 12가지 사이즈 변환: 60, 120, 125, 130, 160, 180, 210, 240, 303, 470, 500, 800px
+						<br />
+						• PNG와 JPG 두 가지 형식으로 생성
+						<br />
+						• 총 24개 파일 생성 (12사이즈 × 2형식)
+					</div>
+				</div>
+
+				<div class="upload-area" id="contentUpload">
+					<div class="upload-icon">🖼️</div>
+					<div class="upload-text">이미지를 드래그하여 업로드하세요</div>
+					<div class="upload-subtext">1개 파일만 (JPG, PNG, GIF, WebP)</div>
+					<button class="upload-btn" onclick="document.getElementById('contentInput').click()">파일 선택</button>
+					<input type="file" id="contentInput" class="file-input" accept="image/*" />
+				</div>
+
+				<div id="contentPreview" class="preview-container">
+					<h3>업로드된 이미지</h3>
+					<div id="contentGrid" class="preview-grid"></div>
+				</div>
+
+				<button id="contentProcess" class="process-btn" disabled>본문용 이미지 생성하기</button>
+
+				<div id="contentProgress" class="progress-container">
+					<div class="progress-bar">
+						<div id="contentProgressFill" class="progress-fill"></div>
+					</div>
+					<div id="contentProgressText" class="progress-text">처리 중...</div>
+				</div>
+
+				<div id="contentResult" class="result-container">
+					<div class="result-summary">
+						<div class="result-title">✅ 변환 완료!</div>
+						<div class="result-stats" id="contentStats"></div>
+					</div>
+					<button id="contentDownload" class="download-btn">ZIP 파일로 다운로드</button>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			// 전역 변수
+			let thumbnailFiles = [];
+			let contentFile = null;
+			let thumbnailZip = null;
+			let contentZip = null;
+
+			// 탭 전환
+			function switchTab(tabName) {
+				// 모든 탭과 콘텐츠 비활성화
+				document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
+				document.querySelectorAll('.tab-content').forEach((content) => content.classList.remove('active'));
+
+				// 선택된 탭과 콘텐츠 활성화
+				event.target.classList.add('active');
+				document.getElementById(tabName).classList.add('active');
+
+				// 결과 초기화
+				resetResults();
+			}
+
+			// 결과 초기화
+			function resetResults() {
+				document.querySelectorAll('.progress-container, .result-container').forEach((el) => {
+					el.style.display = 'none';
+				});
+				document.querySelectorAll('.progress-fill').forEach((el) => {
+					el.style.width = '0%';
+				});
+			}
+
+			// 썸네일용 업로드 설정
+			setupUpload('thumbnail', 7, (files) => {
+				thumbnailFiles = Array.from(files).slice(0, 7);
+				displayThumbnailPreview();
+				document.getElementById('thumbnailProcess').disabled = thumbnailFiles.length === 0;
+			});
+
+			// 본문용 업로드 설정
+			setupUpload('content', 1, (files) => {
+				contentFile = files[0];
+				displayContentPreview();
+				document.getElementById('contentProcess').disabled = !contentFile;
+			});
+
+			// 업로드 기능 설정
+			function setupUpload(type, maxFiles, callback) {
+				const uploadArea = document.getElementById(type + 'Upload');
+				const fileInput = document.getElementById(type + 'Input');
+
+				// 드래그 앤 드롭
+				uploadArea.addEventListener('dragover', (e) => {
+					e.preventDefault();
+					uploadArea.classList.add('dragover');
+				});
+
+				uploadArea.addEventListener('dragleave', () => {
+					uploadArea.classList.remove('dragover');
+				});
+
+				uploadArea.addEventListener('drop', (e) => {
+					e.preventDefault();
+					uploadArea.classList.remove('dragover');
+					const files = Array.from(e.dataTransfer.files)
+						.filter((file) => file.type.startsWith('image/'))
+						.slice(0, maxFiles);
+					callback(files);
+				});
+
+				// 클릭 업로드
+				uploadArea.addEventListener('click', (e) => {
+					if (e.target.id !== type + 'Input' && !e.target.closest('.upload-btn')) {
+						fileInput.click();
+					}
+				});
+
+				fileInput.addEventListener('change', (e) => {
+					const files = Array.from(e.target.files)
+						.filter((file) => file.type.startsWith('image/'))
+						.slice(0, maxFiles);
+					callback(files);
+					e.target.value = '';
+				});
+			}
+
+			// 썸네일 미리보기 표시
+			function displayThumbnailPreview() {
+				const grid = document.getElementById('thumbnailGrid');
+				const container = document.getElementById('thumbnailPreview');
+				const count = document.getElementById('thumbnailCount');
+
+				grid.innerHTML = '';
+				count.textContent = thumbnailFiles.length;
+
+				if (thumbnailFiles.length > 0) {
+					container.style.display = 'block';
+
+					thumbnailFiles.forEach((file, index) => {
+						const item = document.createElement('div');
+						item.className = 'preview-item';
+
+						const img = document.createElement('img');
+						img.className = 'preview-img';
+						img.src = URL.createObjectURL(file);
+
+						const name = document.createElement('div');
+						name.className = 'preview-name';
+						name.textContent = `b${index + 1}.jpg`;
+
+						const removeBtn = document.createElement('button');
+						removeBtn.className = 'remove-btn';
+						removeBtn.textContent = '×';
+						removeBtn.onclick = () => {
+							thumbnailFiles.splice(index, 1);
+							displayThumbnailPreview();
+							document.getElementById('thumbnailProcess').disabled = thumbnailFiles.length === 0;
+						};
+
+						item.appendChild(img);
+						item.appendChild(name);
+						item.appendChild(removeBtn);
+						grid.appendChild(item);
+					});
+				} else {
+					container.style.display = 'none';
+				}
+			}
+
+			// 본문용 미리보기 표시
+			function displayContentPreview() {
+				const grid = document.getElementById('contentGrid');
+				const container = document.getElementById('contentPreview');
+
+				grid.innerHTML = '';
+
+				if (contentFile) {
+					container.style.display = 'block';
+
+					const item = document.createElement('div');
+					item.className = 'preview-item';
+
+					const img = document.createElement('img');
+					img.className = 'preview-img';
+					img.src = URL.createObjectURL(contentFile);
+
+					const name = document.createElement('div');
+					name.className = 'preview-name';
+					name.textContent = contentFile.name;
+
+					const removeBtn = document.createElement('button');
+					removeBtn.className = 'remove-btn';
+					removeBtn.textContent = '×';
+					removeBtn.onclick = () => {
+						contentFile = null;
+						displayContentPreview();
+						document.getElementById('contentProcess').disabled = true;
+					};
+
+					item.appendChild(img);
+					item.appendChild(name);
+					item.appendChild(removeBtn);
+					grid.appendChild(item);
+				} else {
+					container.style.display = 'none';
+				}
+			}
+
+			// 800×800 이미지 블롭에서 610×477 생성하는 함수
+			function processImageFor610x477(imageBlob) {
+				return new Promise((resolve) => {
+					const canvas = document.createElement('canvas');
+					const ctx = canvas.getContext('2d');
+					const img = new Image();
+
+					img.onload = () => {
+						// 610×477 캔버스 설정
+						canvas.width = 610;
+						canvas.height = 477;
+
+						// 흰색 배경 먼저 그리기
+						ctx.fillStyle = '#ffffff';
+						ctx.fillRect(0, 0, 610, 477);
+
+						// 고품질 렌더링 설정
+						ctx.imageSmoothingEnabled = true;
+						ctx.imageSmoothingQuality = 'high';
+
+						// 1단계: 800×800에서 위아래 120px씩 자르기 (800×560)
+						const cropTop = 120;
+						const cropHeight = 560; // 800 - 120 - 120
+
+						// 2단계: 610 기준으로 축소 (800×560 → 610×427)
+						const scale = 610 / 800;
+						const scaledWidth = 610;
+						const scaledHeight = cropHeight * scale; // 560 * 0.7625 = 427
+
+						// 3단계: 610×477 캔버스 중앙에 배치
+						const x = 0; // 가로는 정확히 맞음
+						const y = (477 - scaledHeight) / 2; // 세로 중앙 배치
+
+						ctx.drawImage(
+							img,
+							0,
+							cropTop,
+							800,
+							cropHeight, // 800×800에서 위아래 120px 자른 영역
+							x,
+							y,
+							scaledWidth,
+							scaledHeight // 610×477 캔버스에 배치
+						);
+
+						canvas.toBlob(resolve, 'image/jpeg', 0.9);
+					};
+
+					img.src = URL.createObjectURL(imageBlob);
+				});
+			}
+
+			// 스마트 리사이징 + 크롭 함수 (타겟 크기 고려)
+			function resizeImage(file, targetWidth, targetHeight, format, quality = 0.9) {
+				return new Promise((resolve) => {
+					const canvas = document.createElement('canvas');
+					const ctx = canvas.getContext('2d');
+					const img = new Image();
+
+					img.onload = () => {
+						// 캔버스 크기 설정
+						canvas.width = targetWidth;
+						canvas.height = targetHeight;
+
+						// JPG 형식일 때만 흰색 배경 그리기 (PNG는 투명 배경 유지)
+						if (format === 'image/jpeg') {
+							ctx.fillStyle = '#E3E0D8';
+							ctx.fillRect(0, 0, targetWidth, targetHeight);
+						}
+
+						// 고품질 렌더링 설정
+						ctx.imageSmoothingEnabled = true;
+						ctx.imageSmoothingQuality = 'high';
+
+						// 기존 크롭 방식 (800×800 등 - 이제 610×477 특별 처리 제거)
+						const targetRatio = targetWidth / targetHeight;
+						const sourceRatio = img.width / img.height;
+						const MAX_SOURCE_SIZE = 1200;
+
+						let workingWidth = img.width;
+						let workingHeight = img.height;
+
+						// 1단계: 원본이 너무 크면 먼저 축소 (비율 유지)
+						const maxOriginalSide = Math.max(img.width, img.height);
+						if (maxOriginalSide > MAX_SOURCE_SIZE) {
+							const preScale = MAX_SOURCE_SIZE / maxOriginalSide;
+							workingWidth = img.width * preScale;
+							workingHeight = img.height * preScale;
+						}
+
+						// 2단계: 타겟 크기를 고려한 최적 크기 계산
+						let finalWidth, finalHeight;
+						let cropX, cropY, cropWidth, cropHeight;
+
+						if (sourceRatio > targetRatio) {
+							// 원본이 더 넓음 → 세로를 타겟에 맞춰 확대, 가로는 크롭
+							finalHeight = Math.max(targetHeight, workingHeight);
+							finalWidth = finalHeight * sourceRatio;
+
+							// 크롭 영역 계산 (중앙 기준)
+							cropHeight = finalHeight;
+							cropWidth = finalHeight * targetRatio;
+							cropX = (finalWidth - cropWidth) / 2;
+							cropY = 0;
+						} else {
+							// 원본이 더 높음 → 가로를 타겟에 맞춰 확대, 세로는 크롭
+							finalWidth = Math.max(targetWidth, workingWidth);
+							finalHeight = finalWidth / sourceRatio;
+
+							// 크롭 영역 계산 (중앙 기준)
+							cropWidth = finalWidth;
+							cropHeight = finalWidth / targetRatio;
+							cropX = 0;
+							cropY = (finalHeight - cropHeight) / 2;
+						}
+
+						// 원본을 최적 크기로 리사이징하면서 동시에 크롭
+						const scaleX = finalWidth / img.width;
+						const scaleY = finalHeight / img.height;
+
+						ctx.drawImage(
+							img,
+							cropX / scaleX,
+							cropY / scaleY,
+							cropWidth / scaleX,
+							cropHeight / scaleY, // 원본에서의 크롭 영역
+							0,
+							0,
+							targetWidth,
+							targetHeight // 타겟 전체 영역
+						);
+
+						canvas.toBlob(resolve, format, quality);
+					};
+
+					img.src = URL.createObjectURL(file);
+				});
+			}
+
+			// 썸네일 처리
+			document.getElementById('thumbnailProcess').addEventListener('click', async () => {
+				const processBtn = document.getElementById('thumbnailProcess');
+				const progressContainer = document.getElementById('thumbnailProgress');
+				const progressFill = document.getElementById('thumbnailProgressFill');
+				const progressText = document.getElementById('thumbnailProgressText');
+				const resultContainer = document.getElementById('thumbnailResult');
+				const statsElement = document.getElementById('thumbnailStats');
+
+				processBtn.disabled = true;
+				progressContainer.style.display = 'block';
+				resultContainer.style.display = 'none';
+
+				const zip = new JSZip();
+				const totalFiles = thumbnailFiles.length;
+				let processedFiles = 0;
+
+				for (let i = 0; i < thumbnailFiles.length; i++) {
+					const file = thumbnailFiles[i];
+
+					// 1단계: 800×800 생성 (임시로 사용)
+					const img800 = await resizeImage(file, 800, 800, 'image/jpeg', 0.9);
+
+					// 2단계: 800×800 결과물로 610×477 생성
+					const img610 = await processImageFor610x477(img800);
+					const fileName610 = `b${i + 1}.jpg`;
+					zip.file(fileName610, img610);
+
+					processedFiles++;
+					const progress = (processedFiles / totalFiles) * 100;
+					progressFill.style.width = progress + '%';
+					progressText.textContent = `처리 중... ${processedFiles}/${totalFiles}`;
+				}
+
+				thumbnailZip = zip;
+				progressContainer.style.display = 'none';
+				resultContainer.style.display = 'block';
+				statsElement.textContent = `${thumbnailFiles.length}개 이미지로 ${totalFiles}개 파일 생성`;
+				processBtn.disabled = false;
+			});
+
+			// 본문용 처리
+			document.getElementById('contentProcess').addEventListener('click', async () => {
+				const processBtn = document.getElementById('contentProcess');
+				const progressContainer = document.getElementById('contentProgress');
+				const progressFill = document.getElementById('contentProgressFill');
+				const progressText = document.getElementById('contentProgressText');
+				const resultContainer = document.getElementById('contentResult');
+				const statsElement = document.getElementById('contentStats');
+
+				processBtn.disabled = true;
+				progressContainer.style.display = 'block';
+				resultContainer.style.display = 'none';
+
+				const zip = new JSZip();
+				const sizes = [60, 120, 125, 130, 160, 180, 210, 240, 303, 470, 500, 800];
+				const formats = [
+					{ ext: 'png', mime: 'image/png' },
+					{ ext: 'jpg', mime: 'image/jpeg' },
+				];
+
+				const totalFiles = sizes.length * formats.length;
+				let processedFiles = 0;
+
+				for (const size of sizes) {
+					for (const format of formats) {
+						const resizedBlob = await resizeImage(contentFile, size, size, format.mime, 0.9);
+						const fileName = `${size}.${format.ext}`;
+						zip.file(fileName, resizedBlob);
+
+						processedFiles++;
+						const progress = (processedFiles / totalFiles) * 100;
+						progressFill.style.width = progress + '%';
+						progressText.textContent = `처리 중... ${processedFiles}/${totalFiles}`;
+					}
+				}
+
+				contentZip = zip;
+				progressContainer.style.display = 'none';
+				resultContainer.style.display = 'block';
+				statsElement.textContent = `1개 이미지로 ${totalFiles}개 파일 생성`;
+				processBtn.disabled = false;
+			});
+
+			// 다운로드 기능
+			document.getElementById('thumbnailDownload').addEventListener('click', async () => {
+				if (thumbnailZip) {
+					const content = await thumbnailZip.generateAsync({ type: 'blob' });
+					const url = URL.createObjectURL(content);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = 'thumbnail-images.zip';
+					a.click();
+					URL.revokeObjectURL(url);
+				}
+			});
+
+			document.getElementById('contentDownload').addEventListener('click', async () => {
+				if (contentZip) {
+					const content = await contentZip.generateAsync({ type: 'blob' });
+					const url = URL.createObjectURL(content);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = 'content-images.zip';
+					a.click();
+					URL.revokeObjectURL(url);
+				}
+			});
+		</script>
+	</body>
 </html>
